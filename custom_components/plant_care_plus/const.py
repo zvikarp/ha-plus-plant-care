@@ -1,4 +1,4 @@
-"""Constants for Plant Care Plus."""
+"""Constants for HA Plus Plant Care."""
 
 from datetime import timedelta
 from enum import StrEnum

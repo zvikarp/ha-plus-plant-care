@@ -1,4 +1,4 @@
-"""Config and options flows for Plant Care Plus."""
+"""Config and options flows for HA Plus Plant Care."""
 
 from __future__ import annotations
 

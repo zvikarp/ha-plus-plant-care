@@ -1,6 +1,6 @@
 # Architecture
 
-Plant Care Plus is plant-centric, useful without hardware, progressively
+HA Plus Plant Care is plant-centric, useful without hardware, progressively
 enhanced by sensors, Home Assistant-native, and loosely coupled from Plant
 Monitor and OpenPlantbook.
 
@@ -14,7 +14,7 @@ Shared versioned storage owns two kinds of durable state:
 2. Mutable `(plant, measurement, entity)` assignments and reminder snoozes.
 
 One coordinator per plant observes its currently assigned source entities and
-runs the pure care engine. Stable Plant Care Plus entities subscribe to that
+runs the pure care engine. Stable HA Plus Plant Care entities subscribe to that
 coordinator. When a sensor moves, only assignments and subscriptions change.
 
 ```text

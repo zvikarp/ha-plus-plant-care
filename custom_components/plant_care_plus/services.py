@@ -1,4 +1,4 @@
-"""Home Assistant actions for Plant Care Plus."""
+"""Home Assistant actions for HA Plus Plant Care."""
 
 from __future__ import annotations
 
@@ -73,7 +73,7 @@ def _coordinators_for_call(
             or entity.platform != DOMAIN
             or entity.config_entry_id is None
         ):
-            msg = f"{entity_id} is not a Plant Care Plus entity"
+            msg = f"{entity_id} is not an HA Plus Plant Care entity"
             raise ServiceValidationError(msg)
         coordinator = next(
             (
@@ -116,7 +116,7 @@ def async_register_services(hass: HomeAssistant, manager: PlantCareManager) -> N
             msg = f"Source sensor {source_entity_id} does not exist"
             raise ServiceValidationError(msg)
         if registry_entry is not None and registry_entry.platform == DOMAIN:
-            msg = "A Plant Care Plus proxy cannot be used as a source sensor"
+            msg = "An HA Plus Plant Care proxy cannot be used as a source sensor"
             raise ServiceValidationError(msg)
         coordinators = _coordinators_for_call(hass, manager, call)
         for coordinator in coordinators:

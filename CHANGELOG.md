@@ -12,4 +12,4 @@ releases use semantic versioning.
 - Independent sensor assignments with reassignment and graceful fallback
 - HACS metadata, release packaging, documentation, and automated validation
 
-[0.1.0]: https://github.com/zvikarp/plant-care-plus/releases/tag/v0.1.0
+[0.1.0]: https://github.com/zvikarp/ha-plus-plant-care/releases/tag/v0.1.0
