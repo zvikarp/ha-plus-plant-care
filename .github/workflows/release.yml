@@ -1,14 +1,139 @@
 name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump after the latest release
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
   release:
     types: [published]
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require the main branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Run releases from the main branch." >&2
+          exit 1
+      - name: Prepare the next version
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+
+          def parse_version(value: str) -> tuple[int, int, int]:
+              match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", value)
+              if match is None:
+                  raise SystemExit(f"Expected a stable semantic version, got {value!r}")
+              return tuple(map(int, match.groups()))
+
+          manifest_path = Path("custom_components/plant_care_plus/manifest.json")
+          project_path = Path("pyproject.toml")
+          manifest = json.loads(manifest_path.read_text())
+          project = project_path.read_text()
+          project_match = re.search(
+              r'^version = "(\d+\.\d+\.\d+)"$', project, flags=re.MULTILINE
+          )
+          if project_match is None:
+              raise SystemExit("Could not find the project version")
+
+          current_text = manifest["version"]
+          if project_match.group(1) != current_text:
+              raise SystemExit("Manifest and project versions must match before release")
+          current = parse_version(current_text)
+
+          release_data = subprocess.check_output(
+              ["gh", "release", "list", "--limit", "100", "--json", "tagName"],
+              text=True,
+          )
+          released_versions = []
+          for release in json.loads(release_data):
+              try:
+                  released_versions.append(parse_version(release["tagName"]))
+              except SystemExit:
+                  continue
+          latest_release = max(released_versions, default=(0, 0, 0))
+
+          if current > latest_release:
+              next_version = current
+          else:
+              major, minor, patch = latest_release
+              bump = os.environ["BUMP"]
+              if bump == "major":
+                  next_version = (major + 1, 0, 0)
+              elif bump == "minor":
+                  next_version = (major, minor + 1, 0)
+              elif bump == "patch":
+                  next_version = (major, minor, patch + 1)
+              else:
+                  raise SystemExit(f"Unsupported version bump: {bump}")
+
+          version = ".".join(map(str, next_version))
+          manifest["version"] = version
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+          project_path.write_text(
+              project[: project_match.start(1)]
+              + version
+              + project[project_match.end(1) :]
+          )
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+              output.write(f"version={version}\n")
+              output.write(f"tag=v{version}\n")
+          PY
+      - name: Commit the version bump
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git diff --quiet; then
+            echo "Version files already match ${TAG}."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add custom_components/plant_care_plus/manifest.json pyproject.toml
+          git commit -m "chore: release ${TAG}"
+          git push origin HEAD:main
+      - name: Build HACS archive
+        run: cd custom_components/plant_care_plus && zip -r ../../plant_care_plus.zip .
+      - name: Create GitHub release
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release create "${TAG}" plant_care_plus.zip \
+            --target "$(git rev-parse HEAD)" \
+            --title "${TAG}" \
+            --generate-notes
+
   package:
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
