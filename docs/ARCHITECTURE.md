@@ -31,9 +31,12 @@ Shared storage ── history/assignments ──────┤
 ```
 
 User options override initial/reference values. Selecting an existing `plant.*`
-entity prefills its public name and Home Assistant area and reuses the public
-sensor mapping exposed in its state attributes. The optional OpenPlantbook ID is
-stored without making undocumented calls into that integration.
+entity prefills its public name, Home Assistant area, and OpenPlantbook ID and
+reuses the public sensor mapping exposed in its state attributes. Bulk import
+discovers Plant Monitor through Home Assistant's config-entry and entity
+registries, then creates one normal HA Plus Plant Care config flow per missing
+plant. Source config-entry IDs provide stable duplicate detection even if a
+linked entity is renamed.
 
 ## Invariants
 

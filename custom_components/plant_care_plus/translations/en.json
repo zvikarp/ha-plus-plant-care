@@ -4,9 +4,10 @@
     "step": {
       "user": {
         "title": "Choose an existing plant",
-        "description": "Optionally select a Home Assistant plant to prefill its name and area and reuse its sensors.",
+        "description": "Select one Home Assistant plant to prefill its profile, or add every Plant Monitor plant that is not linked yet.",
         "data": {
-          "linked_plant_entity": "Existing Home Assistant plant (optional)"
+          "linked_plant_entity": "Existing Home Assistant plant (optional)",
+          "import_plant_monitor": "Add all missing Plant Monitor plants"
         }
       },
       "profile": {
@@ -25,6 +26,11 @@
     "error": {
       "linked_plant_not_found": "The selected Home Assistant plant is no longer available.",
       "target_not_above_minimum": "Target moisture must be higher than minimum moisture."
+    },
+    "abort": {
+      "no_plant_monitor_plants": "No Plant Monitor plants were found.",
+      "no_new_plant_monitor_plants": "Every Plant Monitor plant is already added.",
+      "plant_monitor_import_complete": "Added {imported} Plant Monitor plant(s). Skipped {skipped} already-added plant(s)."
     }
   },
   "options": {

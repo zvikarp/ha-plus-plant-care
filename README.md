@@ -20,7 +20,9 @@ history or recreates either plant.
 - `water`, `fertilize`, `repot`, `assign_sensor`, `unassign_sensor`, and `snooze`
   actions
 - Care status, timestamps, measurements, and automation-friendly binary sensors
-- Optional links to existing Home Assistant plant entities and OpenPlantbook IDs
+- Optional links to existing Home Assistant plant entities, with automatic
+  OpenPlantbook ID reuse
+- One-click import of every Plant Monitor plant that has not already been added
 - Durable Home Assistant storage; no cloud account or custom notification system
 
 ## Install
@@ -44,10 +46,13 @@ integration from **Settings → Devices & services**.
 ## Use
 
 Adding a plant first offers an optional existing Home Assistant `plant.*`
-entity. When selected, its name and area prefill the profile and its exposed
-plant sensors are reused. Every plant uses a Home Assistant area. Temperature,
-humidity, and illuminance sensors in that area are discovered automatically; no
-sensor is required.
+entity. When selected, its name, area, and OpenPlantbook ID prefill the profile
+and its exposed plant sensors are reused. The same screen can add every Plant
+Monitor plant that has not already been linked; each imported plant remains its
+own independent HA Plus Plant Care entry. Temperature, humidity, and illuminance
+sensors in each plant's area are discovered automatically. Plants without an
+area still import and remain fully usable without ambient sensors; an area can
+be assigned later from the plant's integration options.
 
 Each plant exposes:
 
@@ -122,9 +127,9 @@ bumps both version files, commits the bump, creates the matching tag and GitHub
 Release, generates release notes, and attaches `plant_care_plus.zip`.
 
 The current implementation intentionally provides the tested foundation and
-sensor layer. Weather prediction, automatic OpenPlantbook retrieval, photos,
-learning, and custom dashboards remain roadmap work; existing integrations
-continue to own sensor communication and plant reference data.
+sensor layer. Weather prediction, photos, learning, and custom dashboards remain
+roadmap work; existing integrations continue to own sensor communication and
+plant reference data.
 
 See [Architecture](docs/ARCHITECTURE.md), [Actions](docs/ACTIONS.md), and the
 [roadmap](docs/ROADMAP.md) for details.
