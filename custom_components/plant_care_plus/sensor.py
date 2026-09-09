@@ -78,20 +78,24 @@ class CareStatusSensor(PlantCareEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Expose concise decision evidence and assignment health."""
         plant_id = self.coordinator.plant.plant_id
-        assignments = self.coordinator.store.assignments_for(plant_id)
         last_event = self.coordinator.store.events_for(plant_id)
+        sources = {
+            measurement: source
+            for measurement in Measurement
+            if (source := self.coordinator.source_entity_id(measurement)) is not None
+        }
         return {
             "reason": self.coordinator.data.reason,
             "sensor_assisted": self.coordinator.data.sensor_assisted,
             "snoozed_until": self.coordinator.data.snoozed_until,
-            "location_type": self.coordinator.plant.location_type,
+            "area_id": self.coordinator.plant.area_id,
             "linked_plant_entity": self.coordinator.plant.linked_plant_entity,
             "sensor_assignments": {
                 measurement: {
-                    "entity_id": assignment.entity_id,
-                    "available": self._source_available(assignment.entity_id),
+                    "entity_id": source,
+                    "available": self._source_available(source),
                 }
-                for measurement, assignment in assignments.items()
+                for measurement, source in sources.items()
             },
             "last_care_event": (
                 {
@@ -188,10 +192,8 @@ class MeasurementSensor(PlantCareEntity, SensorEntity):
 
     @property
     def _source_state(self) -> State | None:
-        assignment = self.coordinator.store.assignments_for(
-            self.coordinator.plant.plant_id
-        ).get(self.measurement)
-        return self.hass.states.get(assignment.entity_id) if assignment else None
+        source = self.coordinator.source_entity_id(self.measurement)
+        return self.hass.states.get(source) if source else None
 
     @property
     def available(self) -> bool:
@@ -229,7 +231,4 @@ class MeasurementSensor(PlantCareEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, str | None]:
         """Identify the replaceable source entity."""
-        assignment = self.coordinator.store.assignments_for(
-            self.coordinator.plant.plant_id
-        ).get(self.measurement)
-        return {"source_entity_id": assignment.entity_id if assignment else None}
+        return {"source_entity_id": self.coordinator.source_entity_id(self.measurement)}

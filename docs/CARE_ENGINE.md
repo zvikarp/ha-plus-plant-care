@@ -14,5 +14,5 @@ pretends that a calendar alone measured dry soil.
    retaining the underlying rich status.
 
 An unavailable assigned source is called out in the status reason and schedule
-fallback is automatic. Indoor/outdoor weather adjustments are intentionally
-deferred until they can be introduced conservatively and tested independently.
+fallback is automatic. Area sensors provide local ambient context using Home
+Assistant's existing organization model.

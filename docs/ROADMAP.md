@@ -8,7 +8,8 @@
 - Home Assistant entities and actions
 - Independent multi-measurement assignments, reassignment, moisture-aware care,
   availability handling, and schedule fallback
-- Optional existing-plant and OpenPlantbook references
+- Existing-plant prefill and sensor reuse, ambient area sources, and optional
+  OpenPlantbook references
 
 ## Future: plant knowledge
 

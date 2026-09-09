@@ -23,6 +23,6 @@ class PlantCareEntity(CoordinatorEntity[PlantCoordinator]):
             identifiers={(DOMAIN, plant.plant_id)},
             name=plant.name,
             manufacturer="HA Plus Plant Care",
-            model=plant.common_name or plant.scientific_name or "Plant",
+            model="Plant",
             suggested_area=plant.area_id,
         )

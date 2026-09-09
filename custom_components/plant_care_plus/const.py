@@ -12,10 +12,7 @@ UPDATE_INTERVAL: Final = timedelta(minutes=15)
 
 CONF_PLANT_ID: Final = "plant_id"
 CONF_AREA_ID: Final = "area_id"
-CONF_COMMON_NAME: Final = "common_name"
-CONF_SCIENTIFIC_NAME: Final = "scientific_name"
 CONF_OPENPLANTBOOK_ID: Final = "openplantbook_id"
-CONF_LOCATION_TYPE: Final = "location_type"
 CONF_LINKED_PLANT_ENTITY: Final = "linked_plant_entity"
 CONF_WATERING_INTERVAL: Final = "watering_interval_days"
 CONF_MOISTURE_MINIMUM: Final = "moisture_minimum"
@@ -36,13 +33,6 @@ ATTR_MEASUREMENT: Final = "measurement"
 ATTR_SOURCE_ENTITY_ID: Final = "source_entity_id"
 ATTR_TIMESTAMP: Final = "timestamp"
 ATTR_HOURS: Final = "hours"
-
-
-class LocationType(StrEnum):
-    """Supported plant locations."""
-
-    INDOOR = "indoor"
-    OUTDOOR = "outdoor"
 
 
 class Measurement(StrEnum):

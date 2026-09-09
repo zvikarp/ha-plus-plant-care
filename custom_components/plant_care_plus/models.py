@@ -12,21 +12,17 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_AREA_ID,
-    CONF_COMMON_NAME,
     CONF_LINKED_PLANT_ENTITY,
-    CONF_LOCATION_TYPE,
     CONF_MOISTURE_MINIMUM,
     CONF_MOISTURE_TARGET,
     CONF_OPENPLANTBOOK_ID,
     CONF_PLANT_ID,
-    CONF_SCIENTIFIC_NAME,
     CONF_WATERING_INTERVAL,
     DEFAULT_MOISTURE_MINIMUM,
     DEFAULT_MOISTURE_TARGET,
     DEFAULT_WATERING_INTERVAL,
     CareEventType,
     CareStatus,
-    LocationType,
     Measurement,
 )
 
@@ -37,10 +33,7 @@ class PlantConfig:
 
     plant_id: str
     name: str
-    common_name: str | None
-    scientific_name: str | None
     openplantbook_id: str | None
-    location_type: LocationType
     area_id: str | None
     linked_plant_entity: str | None
     watering_interval_days: int
@@ -54,12 +47,7 @@ class PlantConfig:
         return cls(
             plant_id=values[CONF_PLANT_ID],
             name=values[CONF_NAME],
-            common_name=values.get(CONF_COMMON_NAME) or None,
-            scientific_name=values.get(CONF_SCIENTIFIC_NAME) or None,
             openplantbook_id=values.get(CONF_OPENPLANTBOOK_ID) or None,
-            location_type=LocationType(
-                values.get(CONF_LOCATION_TYPE, LocationType.INDOOR)
-            ),
             area_id=values.get(CONF_AREA_ID),
             linked_plant_entity=values.get(CONF_LINKED_PLANT_ENTITY) or None,
             watering_interval_days=int(
