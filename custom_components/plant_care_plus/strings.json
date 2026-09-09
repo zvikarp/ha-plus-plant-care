@@ -3,16 +3,19 @@
   "config": {
     "step": {
       "user": {
+        "title": "Choose an existing plant",
+        "description": "Optionally select a Home Assistant plant to prefill its name and area and reuse its sensors.",
+        "data": {
+          "linked_plant_entity": "Existing Home Assistant plant (optional)"
+        }
+      },
+      "profile": {
         "title": "Add a plant",
-        "description": "Plants work with or without sensors. Sensors can be assigned after setup.",
+        "description": "Choose the plant's area. Ambient sensors in that area are used automatically when available.",
         "data": {
           "name": "Name",
-          "common_name": "Common name",
-          "scientific_name": "Scientific name",
           "openplantbook_id": "OpenPlantbook ID",
-          "location_type": "Location",
           "area_id": "Area",
-          "linked_plant_entity": "Existing Home Assistant plant (optional)",
           "watering_interval_days": "Watering check interval",
           "moisture_minimum": "Minimum moisture",
           "moisture_target": "Target moisture"
@@ -20,21 +23,24 @@
       }
     },
     "error": {
+      "linked_plant_not_found": "The selected Home Assistant plant is no longer available.",
       "target_not_above_minimum": "Target moisture must be higher than minimum moisture."
     }
   },
   "options": {
     "step": {
       "init": {
+        "title": "Choose an existing plant",
+        "data": {
+          "linked_plant_entity": "Existing Home Assistant plant (optional)"
+        }
+      },
+      "profile": {
         "title": "Edit plant",
         "data": {
           "name": "Name",
-          "common_name": "Common name",
-          "scientific_name": "Scientific name",
           "openplantbook_id": "OpenPlantbook ID",
-          "location_type": "Location",
           "area_id": "Area",
-          "linked_plant_entity": "Existing Home Assistant plant (optional)",
           "watering_interval_days": "Watering check interval",
           "moisture_minimum": "Minimum moisture",
           "moisture_target": "Target moisture"
@@ -42,16 +48,11 @@
       }
     },
     "error": {
+      "linked_plant_not_found": "The selected Home Assistant plant is no longer available.",
       "target_not_above_minimum": "Target moisture must be higher than minimum moisture."
     }
   },
   "selector": {
-    "location_type": {
-      "options": {
-        "indoor": "Indoor",
-        "outdoor": "Outdoor"
-      }
-    },
     "measurement": {
       "options": {
         "moisture": "Moisture",

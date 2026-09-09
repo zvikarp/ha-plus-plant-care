@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, timedelta
 
 from custom_components.plant_care_plus.care import calculate_care
-from custom_components.plant_care_plus.const import CareStatus, LocationType
+from custom_components.plant_care_plus.const import CareStatus
 from custom_components.plant_care_plus.models import PlantConfig
 
 NOW = datetime(2026, 9, 9, 12, tzinfo=UTC)
@@ -14,10 +14,7 @@ def plant(interval: int = 10) -> PlantConfig:
     return PlantConfig(
         plant_id="plant-1",
         name="ZZ Plant",
-        common_name="ZZ Plant",
-        scientific_name="Zamioculcas zamiifolia",
         openplantbook_id=None,
-        location_type=LocationType.INDOOR,
         area_id=None,
         linked_plant_entity=None,
         watering_interval_days=interval,

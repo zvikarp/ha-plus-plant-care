@@ -2,7 +2,9 @@
 
 from datetime import UTC, datetime
 
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import ATTR_ENTITY_ID, CONF_NAME, STATE_UNAVAILABLE
+from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import service as service_helper
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -11,7 +13,8 @@ from custom_components.plant_care_plus.const import (
     ATTR_MEASUREMENT,
     ATTR_SOURCE_ENTITY_ID,
     ATTR_TIMESTAMP,
-    CONF_LOCATION_TYPE,
+    CONF_AREA_ID,
+    CONF_LINKED_PLANT_ENTITY,
     CONF_MOISTURE_MINIMUM,
     CONF_MOISTURE_TARGET,
     CONF_PLANT_ID,
@@ -25,20 +28,28 @@ from custom_components.plant_care_plus.const import (
 from custom_components.plant_care_plus.coordinator import PlantCareManager
 
 
-def make_entry(plant_id: str, name: str) -> MockConfigEntry:
+def make_entry(
+    plant_id: str,
+    name: str,
+    area_id: str = "living_room",
+    linked_plant_entity: str | None = None,
+) -> MockConfigEntry:
     """Create a complete plant config entry."""
+    data = {
+        CONF_PLANT_ID: plant_id,
+        CONF_NAME: name,
+        CONF_AREA_ID: area_id,
+        CONF_WATERING_INTERVAL: 18,
+        CONF_MOISTURE_MINIMUM: 20,
+        CONF_MOISTURE_TARGET: 35,
+    }
+    if linked_plant_entity is not None:
+        data[CONF_LINKED_PLANT_ENTITY] = linked_plant_entity
     return MockConfigEntry(
         domain=DOMAIN,
         title=name,
         unique_id=plant_id,
-        data={
-            CONF_PLANT_ID: plant_id,
-            CONF_NAME: name,
-            CONF_LOCATION_TYPE: "indoor",
-            CONF_WATERING_INTERVAL: 18,
-            CONF_MOISTURE_MINIMUM: 20,
-            CONF_MOISTURE_TARGET: 35,
-        },
+        data=data,
     )
 
 
@@ -110,3 +121,85 @@ async def test_sensor_move_preserves_plant_and_history(hass) -> None:
     await hass.async_block_till_done()
     assert manager.coordinators["basil-plant"].data.moisture_available is False
     assert Measurement.MOISTURE in manager.store.assignments_for("basil-plant")
+
+
+async def test_area_ambient_sensor_is_used_automatically(hass) -> None:
+    """An area temperature sensor backs the plant proxy without manual setup."""
+    area = ar.async_get(hass).async_create("Greenhouse")
+    registry = er.async_get(hass)
+    source = registry.async_get_or_create(
+        "sensor",
+        "test",
+        "greenhouse_temperature",
+        suggested_object_id="greenhouse_temperature",
+        original_device_class=SensorDeviceClass.TEMPERATURE,
+    )
+    registry.async_update_entity(source.entity_id, area_id=area.id)
+    hass.states.async_set(
+        source.entity_id,
+        "24.5",
+        {"device_class": SensorDeviceClass.TEMPERATURE, "unit_of_measurement": "°C"},
+    )
+
+    entry = make_entry("fern", "Fern", area.id)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    proxy_id = registry.async_get_entity_id("sensor", DOMAIN, "fern_temperature")
+    assert proxy_id is not None
+    proxy = hass.states.get(proxy_id)
+    assert proxy is not None
+    assert proxy.state == "24.5"
+    assert proxy.attributes["source_entity_id"] == source.entity_id
+
+
+async def test_linked_plant_sensor_is_reused_automatically(hass) -> None:
+    """A linked HA plant's public sensor mapping backs the matching proxy."""
+    hass.states.async_set(
+        "sensor.fern_moisture_source", "18", {"unit_of_measurement": "%"}
+    )
+    hass.states.async_set(
+        "plant.existing_fern",
+        "ok",
+        {"sensors": {"moisture": "sensor.fern_moisture_source"}},
+    )
+    entry = make_entry(
+        "linked-fern",
+        "Linked Fern",
+        linked_plant_entity="plant.existing_fern",
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager: PlantCareManager = hass.data[DOMAIN]
+    coordinator = manager.coordinators["linked-fern"]
+    assert coordinator.data.moisture == 18
+    assert coordinator.data.sensor_assisted
+
+
+async def test_legacy_profile_without_area_still_loads(hass) -> None:
+    """Removed profile keys remain readable during a rollback-safe transition."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Legacy plant",
+        unique_id="legacy-plant",
+        data={
+            CONF_PLANT_ID: "legacy-plant",
+            CONF_NAME: "Legacy plant",
+            "common_name": "Fern",
+            "scientific_name": "Nephrolepis exaltata",
+            "location_type": "indoor",
+            CONF_WATERING_INTERVAL: 18,
+            CONF_MOISTURE_MINIMUM: 20,
+            CONF_MOISTURE_TARGET: 35,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    manager: PlantCareManager = hass.data[DOMAIN]
+    assert manager.coordinators["legacy-plant"].plant.area_id is None

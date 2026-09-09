@@ -43,9 +43,11 @@ integration from **Settings → Devices & services**.
 
 ## Use
 
-Adding a plant asks for its name, optional species/reference information,
-indoor/outdoor location, watering interval, and moisture thresholds. No sensor
-is required.
+Adding a plant first offers an optional existing Home Assistant `plant.*`
+entity. When selected, its name and area prefill the profile and its exposed
+plant sensors are reused. Every plant uses a Home Assistant area. Temperature,
+humidity, and illuminance sensors in that area are discovered automatically; no
+sensor is required.
 
 Each plant exposes:
 
