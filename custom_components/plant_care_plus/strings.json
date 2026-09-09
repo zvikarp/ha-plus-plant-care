@@ -1,0 +1,127 @@
+{
+  "title": "Plant Care Plus",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a plant",
+        "description": "Plants work with or without sensors. Sensors can be assigned after setup.",
+        "data": {
+          "name": "Name",
+          "common_name": "Common name",
+          "scientific_name": "Scientific name",
+          "openplantbook_id": "OpenPlantbook ID",
+          "location_type": "Location",
+          "area_id": "Area",
+          "linked_plant_entity": "Existing Home Assistant plant (optional)",
+          "watering_interval_days": "Watering check interval",
+          "moisture_minimum": "Minimum moisture",
+          "moisture_target": "Target moisture"
+        }
+      }
+    },
+    "error": {
+      "target_not_above_minimum": "Target moisture must be higher than minimum moisture."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edit plant",
+        "data": {
+          "name": "Name",
+          "common_name": "Common name",
+          "scientific_name": "Scientific name",
+          "openplantbook_id": "OpenPlantbook ID",
+          "location_type": "Location",
+          "area_id": "Area",
+          "linked_plant_entity": "Existing Home Assistant plant (optional)",
+          "watering_interval_days": "Watering check interval",
+          "moisture_minimum": "Minimum moisture",
+          "moisture_target": "Target moisture"
+        }
+      }
+    },
+    "error": {
+      "target_not_above_minimum": "Target moisture must be higher than minimum moisture."
+    }
+  },
+  "selector": {
+    "location_type": {
+      "options": {
+        "indoor": "Indoor",
+        "outdoor": "Outdoor"
+      }
+    },
+    "measurement": {
+      "options": {
+        "moisture": "Moisture",
+        "temperature": "Temperature",
+        "humidity": "Humidity",
+        "conductivity": "Conductivity",
+        "illuminance": "Illuminance"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "care_status": {
+        "name": "Care status",
+        "state": {
+          "ok": "OK",
+          "approaching": "Approaching",
+          "check": "Check",
+          "needs_attention": "Needs attention",
+          "overdue": "Overdue",
+          "unknown": "Unknown"
+        }
+      },
+      "last_watered": { "name": "Last watered" },
+      "next_watering": { "name": "Next watering check" },
+      "days_since_watered": { "name": "Days since watered" },
+      "moisture": { "name": "Moisture" },
+      "temperature": { "name": "Temperature" },
+      "humidity": { "name": "Humidity" },
+      "conductivity": { "name": "Conductivity" },
+      "illuminance": { "name": "Illuminance" }
+    },
+    "binary_sensor": {
+      "needs_water": { "name": "Needs water" },
+      "needs_attention": { "name": "Needs attention" }
+    }
+  },
+  "services": {
+    "water": {
+      "name": "Water",
+      "description": "Record that a plant was watered.",
+      "fields": { "timestamp": { "name": "Timestamp", "description": "When watering occurred; defaults to now." } }
+    },
+    "fertilize": {
+      "name": "Fertilize",
+      "description": "Record that a plant was fertilized.",
+      "fields": { "timestamp": { "name": "Timestamp", "description": "When fertilizing occurred; defaults to now." } }
+    },
+    "repot": {
+      "name": "Repot",
+      "description": "Record that a plant was repotted.",
+      "fields": { "timestamp": { "name": "Timestamp", "description": "When repotting occurred; defaults to now." } }
+    },
+    "assign_sensor": {
+      "name": "Assign sensor",
+      "description": "Assign or move a measurement source to this plant.",
+      "fields": {
+        "measurement": { "name": "Measurement", "description": "The observation supplied by the source." },
+        "source_entity_id": { "name": "Source sensor", "description": "An existing Home Assistant sensor entity." }
+      }
+    },
+    "unassign_sensor": {
+      "name": "Unassign sensor",
+      "description": "Remove a measurement source without removing the plant.",
+      "fields": { "measurement": { "name": "Measurement", "description": "The observation to disconnect." } }
+    },
+    "snooze": {
+      "name": "Snooze",
+      "description": "Temporarily suppress attention reminders.",
+      "fields": { "hours": { "name": "Hours", "description": "How long to suppress reminder booleans." } }
+    }
+  }
+}

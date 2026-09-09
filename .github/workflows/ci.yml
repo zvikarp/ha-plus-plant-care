@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+      - uses: home-assistant/actions/hassfest@master
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install the minimum supported Home Assistant test harness
+        run: pip install --no-deps homeassistant==2025.1.3 pytest-homeassistant-custom-component==0.13.204
+      - name: Install constrained test dependencies
+        run: python -c "import homeassistant,pathlib,subprocess,sys; constraints=pathlib.Path(homeassistant.__file__).with_name('package_constraints.txt'); subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-c', str(constraints), '.[test]'])"
+      - run: ruff check .
+      - run: mypy custom_components/plant_care_plus
+      - run: pytest

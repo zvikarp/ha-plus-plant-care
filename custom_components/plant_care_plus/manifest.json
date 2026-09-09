@@ -1,0 +1,12 @@
+{
+  "domain": "plant_care_plus",
+  "name": "Plant Care Plus",
+  "codeowners": ["@zvikarp"],
+  "config_flow": true,
+  "documentation": "https://github.com/zvikarp/plant-care-plus",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/zvikarp/plant-care-plus/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

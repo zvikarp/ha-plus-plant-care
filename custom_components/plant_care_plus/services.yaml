@@ -1,0 +1,75 @@
+water:
+  fields:
+    timestamp:
+      example: "2026-09-07T17:00:00+03:00"
+      selector:
+        datetime:
+  target:
+    entity:
+      integration: plant_care_plus
+fertilize:
+  fields:
+    timestamp:
+      selector:
+        datetime:
+  target:
+    entity:
+      integration: plant_care_plus
+repot:
+  fields:
+    timestamp:
+      selector:
+        datetime:
+  target:
+    entity:
+      integration: plant_care_plus
+assign_sensor:
+  fields:
+    measurement:
+      required: true
+      selector:
+        select:
+          translation_key: measurement
+          options:
+            - moisture
+            - temperature
+            - humidity
+            - conductivity
+            - illuminance
+    source_entity_id:
+      required: true
+      selector:
+        entity:
+          domain: sensor
+  target:
+    entity:
+      integration: plant_care_plus
+unassign_sensor:
+  fields:
+    measurement:
+      required: true
+      selector:
+        select:
+          translation_key: measurement
+          options:
+            - moisture
+            - temperature
+            - humidity
+            - conductivity
+            - illuminance
+  target:
+    entity:
+      integration: plant_care_plus
+snooze:
+  fields:
+    hours:
+      default: 24
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 720
+          unit_of_measurement: hours
+  target:
+    entity:
+      integration: plant_care_plus
