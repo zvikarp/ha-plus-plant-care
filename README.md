@@ -43,9 +43,11 @@ integration from **Settings → Devices & services**.
 
 ## Use
 
-Adding a plant asks for its name, optional species/reference information,
-indoor/outdoor location, watering interval, and moisture thresholds. No sensor
-is required.
+Adding a plant first offers an optional existing Home Assistant `plant.*`
+entity. When selected, its name and area prefill the profile and its exposed
+plant sensors are reused. Every plant uses a Home Assistant area. Temperature,
+humidity, and illuminance sensors in that area are discovered automatically; no
+sensor is required.
 
 Each plant exposes:
 
@@ -112,19 +114,17 @@ python3.13 -m venv .venv
 Personal HACS installations do not need a release. After changes are merged,
 use HACS's **Redownload** action for the integration and restart Home Assistant.
 
-If a packaged release is wanted later, update the version in
-`custom_components/plant_care_plus/manifest.json` and `pyproject.toml`, update
-`CHANGELOG.md`, then publish a matching GitHub tag and release. The Release
-workflow will attach `plant_care_plus.zip` automatically. For example:
+To publish a packaged release later, update `CHANGELOG.md`, open the repository's
+**Actions → Release** workflow, choose **Run workflow** on `main`, and select a
+patch, minor, or major bump. If the version files are already ahead of the
+latest release, that unreleased version is used first. Otherwise the workflow
+bumps both version files, commits the bump, creates the matching tag and GitHub
+Release, generates release notes, and attaches `plant_care_plus.zip`.
 
-```bash
-gh release create v0.1.0 --generate-notes
-```
-
-The current implementation intentionally provides the tested foundation and sensor
-layer. Weather prediction, automatic OpenPlantbook retrieval, photos, learning,
-and custom dashboards remain roadmap work; existing integrations continue to
-own sensor communication and plant reference data.
+The current implementation intentionally provides the tested foundation and
+sensor layer. Weather prediction, automatic OpenPlantbook retrieval, photos,
+learning, and custom dashboards remain roadmap work; existing integrations
+continue to own sensor communication and plant reference data.
 
 See [Architecture](docs/ARCHITECTURE.md), [Actions](docs/ACTIONS.md), and the
 [roadmap](docs/ROADMAP.md) for details.

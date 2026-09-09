@@ -3,6 +3,18 @@
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/) and
 releases use semantic versioning.
 
+## Unreleased
+
+### Changed
+
+- Existing Home Assistant plants are selected first and prefill their name and
+  area while reusing their exposed sensors.
+- Home Assistant areas are now required and automatically provide ambient
+  temperature, humidity, and illuminance sources.
+- Common-name and scientific-name profile fields were removed.
+- A guarded manual GitHub Actions workflow now bumps versions and creates tagged
+  releases with the HACS archive attached.
+
 ## [0.1.0] - 2026-09-09
 
 ### Added

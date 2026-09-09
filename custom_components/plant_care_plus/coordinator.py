@@ -23,6 +23,7 @@ from homeassistant.util import dt as dt_util
 from .care import calculate_care
 from .const import DOMAIN, UPDATE_INTERVAL, CareEventType, Measurement
 from .models import CareDecision, PlantConfig
+from .sources import area_source, linked_plant_source
 from .storage import PlantCareStore
 
 if TYPE_CHECKING:
@@ -64,9 +65,12 @@ class PlantCoordinator(DataUpdateCoordinator[CareDecision]):
         if self._remove_state_listener is not None:
             self._remove_state_listener()
         entity_ids = {
-            item.entity_id
-            for item in self.store.assignments_for(self.plant.plant_id).values()
+            entity_id
+            for measurement in Measurement
+            if (entity_id := self.source_entity_id(measurement)) is not None
         }
+        if self.plant.linked_plant_entity is not None:
+            entity_ids.add(self.plant.linked_plant_entity)
         self._remove_state_listener = (
             async_track_state_change_event(
                 self.hass, entity_ids, self._async_source_state_changed
@@ -76,24 +80,36 @@ class PlantCoordinator(DataUpdateCoordinator[CareDecision]):
         )
 
     @callback
-    def _async_source_state_changed(self, _event: Event[EventStateChangedData]) -> None:
+    def _async_source_state_changed(self, event: Event[EventStateChangedData]) -> None:
         """Recalculate immediately when a source sensor changes."""
+        if event.data["entity_id"] == self.plant.linked_plant_entity:
+            self._subscribe_to_assignments()
         self.async_set_updated_data(self._calculate())
 
     def assignments_changed(self) -> None:
         """Resubscribe after a sensor is assigned, removed, or moved."""
         self._subscribe_to_assignments()
 
+    def source_entity_id(self, measurement: Measurement) -> str | None:
+        """Resolve manual, linked-plant, then area-based measurement sources."""
+        manual = self.store.assignments_for(self.plant.plant_id).get(measurement)
+        if manual is not None:
+            return manual.entity_id
+        if linked := linked_plant_source(
+            self.hass, self.plant.linked_plant_entity, measurement
+        ):
+            return linked
+        return area_source(self.hass, self.plant.area_id, measurement)
+
     async def _async_update_data(self) -> CareDecision:
         """Calculate current care state."""
         return self._calculate()
 
     def _calculate(self) -> CareDecision:
-        assignments = self.store.assignments_for(self.plant.plant_id)
-        moisture_assignment = assignments.get(Measurement.MOISTURE)
+        moisture_source = self.source_entity_id(Measurement.MOISTURE)
         moisture = None
-        if moisture_assignment is not None:
-            state = self.hass.states.get(moisture_assignment.entity_id)
+        if moisture_source is not None:
+            state = self.hass.states.get(moisture_source)
             if (
                 state is not None
                 and state.state
@@ -114,7 +130,7 @@ class PlantCoordinator(DataUpdateCoordinator[CareDecision]):
             now=dt_util.utcnow(),
             last_watered=last_watered.timestamp if last_watered else None,
             moisture=moisture,
-            moisture_assigned=moisture_assignment is not None,
+            moisture_assigned=moisture_source is not None,
             snoozed_until=self.store.snoozed_until(self.plant.plant_id),
         )
 

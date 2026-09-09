@@ -5,7 +5,7 @@ enhanced by sensors, Home Assistant-native, and loosely coupled from Plant
 Monitor and OpenPlantbook.
 
 Each real plant is a Home Assistant config entry with a generated UUID. Its
-profile contains user-owned identity, species, location, and care thresholds.
+profile contains user-owned identity, area, reference ID, and care thresholds.
 Sensor entity IDs are never part of plant identity.
 
 Shared versioned storage owns two kinds of durable state:
@@ -13,9 +13,10 @@ Shared versioned storage owns two kinds of durable state:
 1. Care and assignment history keyed by plant UUID.
 2. Mutable `(plant, measurement, entity)` assignments and reminder snoozes.
 
-One coordinator per plant observes its currently assigned source entities and
-runs the pure care engine. Stable HA Plus Plant Care entities subscribe to that
-coordinator. When a sensor moves, only assignments and subscriptions change.
+One coordinator per plant resolves explicit assignments, linked-plant sensors,
+and ambient area sensors, observes those source entities, and runs the pure care
+engine. Stable HA Plus Plant Care entities subscribe to that coordinator. When
+a manual sensor moves, only assignments and subscriptions change.
 
 ```text
 HA sensor entities ── observations ──► Plant coordinator
@@ -29,15 +30,17 @@ Shared storage ── history/assignments ──────┤
                               HA entities and actions
 ```
 
-User options override initial/reference values. The OpenPlantbook ID and an
-existing `plant.*` entity may be linked, but this release deliberately performs
-no undocumented calls into either integration.
+User options override initial/reference values. Selecting an existing `plant.*`
+entity prefills its public name and Home Assistant area and reuses the public
+sensor mapping exposed in its state attributes. The optional OpenPlantbook ID is
+stored without making undocumented calls into that integration.
 
 ## Invariants
 
 - Plant IDs never derive from entity IDs.
 - History always belongs to a plant UUID.
-- A measurement source can belong to at most one plant at a time.
+- A manually assigned plant-specific source can belong to at most one plant at
+  a time; ambient area sources may be shared.
 - Reassignment records unassignment and assignment events atomically in one
   storage save.
 - Missing source states do not remove assignments.
