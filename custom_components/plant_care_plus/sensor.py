@@ -1,4 +1,4 @@
-"""Plant Care Plus sensor entities."""
+"""HA Plus Plant Care sensor entities."""
 
 from __future__ import annotations
 

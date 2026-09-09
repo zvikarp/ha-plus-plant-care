@@ -3,18 +3,18 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "plant-care-plus"
+name = "ha-plus-plant-care"
 version = "0.1.0"
-description = "Plant-centric care tracking for Home Assistant"
+description = "HA Plus Plant Care integration for Home Assistant"
 readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT"
-authors = [{ name = "Plant Care Plus contributors" }]
+authors = [{ name = "HA Plus Plant Care contributors" }]
 
 [project.urls]
-Documentation = "https://github.com/zvikarp/plant-care-plus#readme"
-Issues = "https://github.com/zvikarp/plant-care-plus/issues"
-Source = "https://github.com/zvikarp/plant-care-plus"
+Documentation = "https://github.com/zvikarp/ha-plus-plant-care#readme"
+Issues = "https://github.com/zvikarp/ha-plus-plant-care/issues"
+Source = "https://github.com/zvikarp/ha-plus-plant-care"
 
 [project.optional-dependencies]
 test = [

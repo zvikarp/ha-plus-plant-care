@@ -1,4 +1,4 @@
-"""Plant Care Plus domain models."""
+"""HA Plus Plant Care domain models."""
 
 from __future__ import annotations
 

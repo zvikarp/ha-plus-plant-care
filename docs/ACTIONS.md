@@ -1,6 +1,6 @@
 # Actions
 
-All actions target any Plant Care Plus entity belonging to the intended plant.
+All actions target any HA Plus Plant Care entity belonging to the intended plant.
 
 | Action | Data | Effect |
 |---|---|---|

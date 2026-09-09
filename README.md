@@ -1,6 +1,6 @@
-# Plant Care Plus
+# HA Plus Plant Care
 
-Plant Care Plus is a plant-centric companion integration for Home Assistant. It
+HA Plus Plant Care is a plant-centric companion integration for Home Assistant. It
 tracks care, schedules checks, keeps durable history, and progressively uses
 existing sensor entities when they are available.
 
@@ -27,11 +27,13 @@ history or recreates either plant.
 
 ### HACS
 
-1. In HACS, open **Integrations** and add this repository as a custom repository.
-2. Search for **Plant Care Plus** and install it.
+1. In HACS, open **Integrations**, choose **Custom repositories**, and add
+   `https://github.com/zvikarp/ha-plus-plant-care` with the **Integration** type.
+2. Search for **HA Plus Plant Care** and install it. HACS installs directly from
+   the repository, so a GitHub Release is not required for personal use.
 3. Restart Home Assistant.
 4. Open **Settings → Devices & services → Add integration**, search for
-   **Plant Care Plus**, and add each real plant.
+   **HA Plus Plant Care**, and add each real plant.
 
 ### Manual
 
@@ -105,7 +107,21 @@ python3.13 -m venv .venv
 .venv/bin/pytest
 ```
 
-The current release intentionally implements the tested foundation and sensor
+### Optional releases
+
+Personal HACS installations do not need a release. After changes are merged,
+use HACS's **Redownload** action for the integration and restart Home Assistant.
+
+If a packaged release is wanted later, update the version in
+`custom_components/plant_care_plus/manifest.json` and `pyproject.toml`, update
+`CHANGELOG.md`, then publish a matching GitHub tag and release. The Release
+workflow will attach `plant_care_plus.zip` automatically. For example:
+
+```bash
+gh release create v0.1.0 --generate-notes
+```
+
+The current implementation intentionally provides the tested foundation and sensor
 layer. Weather prediction, automatic OpenPlantbook retrieval, photos, learning,
 and custom dashboards remain roadmap work; existing integrations continue to
 own sensor communication and plant reference data.
