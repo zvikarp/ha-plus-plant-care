@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .const import CONF_AREA_ID, DOMAIN, Measurement
+from .const import CONF_AREA_ID, CONF_OPENPLANTBOOK_ID, DOMAIN, Measurement
 
 _AMBIENT_DEVICE_CLASSES: dict[str, Measurement] = {
     SensorDeviceClass.TEMPERATURE: Measurement.TEMPERATURE,
@@ -47,6 +47,11 @@ def linked_plant_defaults(hass: HomeAssistant, entity_id: str) -> dict[str, str]
     defaults = {CONF_NAME: state.name}
     if area_id := entity_area_id(hass, entity_id):
         defaults[CONF_AREA_ID] = area_id
+    species = state.attributes.get("species_original") or state.attributes.get(
+        "species"
+    )
+    if isinstance(species, str) and species.strip():
+        defaults[CONF_OPENPLANTBOOK_ID] = species.strip()
     return defaults
 
 
