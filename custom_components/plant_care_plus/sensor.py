@@ -15,6 +15,7 @@ from homeassistant.const import (
     STATE_UNKNOWN,
     UnitOfTime,
 )
+from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN, Measurement
 from .coordinator import PlantCareManager, PlantCoordinator
@@ -39,7 +40,6 @@ async def async_setup_entry(
     coordinator = manager.coordinators[PlantConfig.from_entry(entry).plant_id]
     async_add_entities(
         [
-            CareStatusSensor(coordinator),
             LastWateredSensor(coordinator),
             NextWateringSensor(coordinator),
             DaysSinceWateredSensor(coordinator),
@@ -47,6 +47,9 @@ async def async_setup_entry(
                 MeasurementSensor(coordinator, measurement)
                 for measurement in Measurement
             ),
+            # Register sibling sensors first so the primary status entity can
+            # publish their current registry IDs for the bundled card.
+            CareStatusSensor(coordinator),
         ]
     )
 
@@ -78,6 +81,7 @@ class CareStatusSensor(PlantCareEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Expose concise decision evidence and assignment health."""
         plant_id = self.coordinator.plant.plant_id
+        registry = er.async_get(self.hass)
         last_event = self.coordinator.store.events_for(plant_id)
         sources = {
             measurement: source
@@ -85,11 +89,27 @@ class CareStatusSensor(PlantCareEntity, SensorEntity):
             if (source := self.coordinator.source_entity_id(measurement)) is not None
         }
         return {
+            "plant_name": self.coordinator.plant.name,
             "reason": self.coordinator.data.reason,
             "sensor_assisted": self.coordinator.data.sensor_assisted,
             "snoozed_until": self.coordinator.data.snoozed_until,
             "area_id": self.coordinator.plant.area_id,
             "linked_plant_entity": self.coordinator.plant.linked_plant_entity,
+            "related_entities": {
+                key: entity_id
+                for key in (
+                    "last_watered",
+                    "next_watering",
+                    "days_since_watered",
+                    *Measurement,
+                )
+                if (
+                    entity_id := registry.async_get_entity_id(
+                        "sensor", DOMAIN, f"{plant_id}_{key}"
+                    )
+                )
+                is not None
+            },
             "sensor_assignments": {
                 measurement: {
                     "entity_id": source,

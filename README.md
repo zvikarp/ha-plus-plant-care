@@ -20,6 +20,8 @@ history or recreates either plant.
 - `water`, `fertilize`, `repot`, `assign_sensor`, `unassign_sensor`, and `snooze`
   actions
 - Care status, timestamps, measurements, and automation-friendly binary sensors
+- A built-in Lovelace card for status, measurements, watering dates, and marking
+  a plant as watered
 - Optional links to existing Home Assistant plant entities, with automatic
   OpenPlantbook ID reuse
 - One-click import of every Plant Monitor plant that has not already been added
@@ -91,6 +93,20 @@ Notification delivery stays Home Assistant-native. A simple automation can
 trigger on `binary_sensor.<plant>_needs_attention` and use any notify action the
 household prefers.
 
+### Dashboard card
+
+The integration loads its Lovelace card automatically. Add a **Manual** card to
+a dashboard and target the plant's **Care status** sensor:
+
+```yaml
+type: custom:plant-care-plus-card
+entity: sensor.living_room_zz_plant_care_status
+```
+
+The card shows the linked plant image when available, its care status and
+reason, last and next watering dates, available measurements, and a confirmed
+**Mark watered** action. Missing measurements remain visible as unavailable.
+
 ## Care decisions
 
 Available moisture is the primary watering signal. A healthy reading prevents a
@@ -126,10 +142,10 @@ latest release, that unreleased version is used first. Otherwise the workflow
 bumps both version files, commits the bump, creates the matching tag and GitHub
 Release, generates release notes, and attaches `plant_care_plus.zip`.
 
-The current implementation intentionally provides the tested foundation and
-sensor layer. Weather prediction, photos, learning, and custom dashboards remain
-roadmap work; existing integrations continue to own sensor communication and
-plant reference data.
+The current implementation intentionally provides the tested foundation,
+sensor layer, and focused plant card. Weather prediction, photos, and learning
+remain roadmap work; existing integrations continue to own sensor communication
+and plant reference data.
 
 See [Architecture](docs/ARCHITECTURE.md), [Actions](docs/ACTIONS.md), and the
 [roadmap](docs/ROADMAP.md) for details.

@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import PlantCareManager, PlantCoordinator
+from .frontend import async_register_card
 from .models import PlantConfig
 from .services import async_register_services
 
@@ -17,6 +18,8 @@ if TYPE_CHECKING:
 
 async def async_setup(hass: HomeAssistant, _config: dict) -> bool:
     """Set up shared HA Plus Plant Care storage and actions."""
+    if "frontend" in hass.config.components:
+        await async_register_card(hass)
     manager = PlantCareManager(hass)
     await manager.async_load()
     hass.data[DOMAIN] = manager

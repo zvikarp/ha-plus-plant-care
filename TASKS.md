@@ -6,4 +6,4 @@
 - [x] Moisture-aware care, unavailable-source visibility, schedule fallback
 - [x] Optional reference identifiers and explicit user-override care profiles
 - [ ] Weather/context intelligence (future roadmap; deliberately out of scope)
-- [ ] Custom Lovelace dashboard (not required; standard HA UI is supported)
+- [x] Custom Lovelace plant card; standard HA cards remain supported
