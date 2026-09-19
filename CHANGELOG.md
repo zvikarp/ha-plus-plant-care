@@ -5,6 +5,12 @@ releases use semantic versioning.
 
 ## Unreleased
 
+### Added
+
+- A bundled `custom:plant-care-plus-card` with plant imagery, care status,
+  measurements, watering dates, drill-down details, and a confirmed watering
+  action.
+
 ### Changed
 
 - Existing Home Assistant plants are selected first and prefill their name and

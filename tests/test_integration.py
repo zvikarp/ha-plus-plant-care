@@ -1,9 +1,13 @@
 """Core integration promise: plants and their history outlive sensor movement."""
 
 from datetime import UTC, datetime
+from typing import cast
+from unittest.mock import AsyncMock, MagicMock, patch
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import ATTR_ENTITY_ID, CONF_NAME, STATE_UNAVAILABLE
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import service as service_helper
@@ -26,6 +30,11 @@ from custom_components.plant_care_plus.const import (
     Measurement,
 )
 from custom_components.plant_care_plus.coordinator import PlantCareManager
+from custom_components.plant_care_plus.frontend import (
+    CARD_PATH,
+    CARD_URL,
+    async_register_card,
+)
 
 
 def make_entry(
@@ -121,6 +130,50 @@ async def test_sensor_move_preserves_plant_and_history(hass) -> None:
     await hass.async_block_till_done()
     assert manager.coordinators["basil-plant"].data.moisture_available is False
     assert Measurement.MOISTURE in manager.store.assignments_for("basil-plant")
+
+
+async def test_card_registration_uses_supported_frontend_apis() -> None:
+    """The bundled card is served and registered as an ES module."""
+    hass = cast(HomeAssistant, MagicMock())
+    hass.http.async_register_static_paths = AsyncMock()
+
+    with patch(
+        "custom_components.plant_care_plus.frontend.add_extra_js_url"
+    ) as add_extra_js_url:
+        await async_register_card(hass)
+
+    hass.http.async_register_static_paths.assert_awaited_once_with(
+        [StaticPathConfig(CARD_URL, str(CARD_PATH), cache_headers=False)]
+    )
+    add_extra_js_url.assert_called_once_with(hass, CARD_URL)
+
+
+async def test_care_status_exposes_current_card_entities(hass) -> None:
+    """The card receives registry-safe sibling IDs instead of guessing names."""
+    entry = make_entry("card-plant", "Card Plant")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    registry = er.async_get(hass)
+    status_id = registry.async_get_entity_id(
+        "sensor", DOMAIN, "card-plant_care_status"
+    )
+    assert status_id is not None
+    status = hass.states.get(status_id)
+    assert status is not None
+    related = status.attributes["related_entities"]
+
+    assert status.attributes["plant_name"] == "Card Plant"
+    assert set(related) == {
+        "last_watered",
+        "next_watering",
+        "days_since_watered",
+        *Measurement,
+    }
+    assert related["moisture"] == registry.async_get_entity_id(
+        "sensor", DOMAIN, "card-plant_moisture"
+    )
 
 
 async def test_area_ambient_sensor_is_used_automatically(hass) -> None:

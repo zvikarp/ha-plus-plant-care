@@ -10,6 +10,8 @@
   availability handling, and schedule fallback
 - Existing-plant prefill and sensor reuse, automatic OpenPlantbook ID reuse,
   bulk Plant Monitor import, and ambient area sources
+- Bundled Lovelace card for plant status, measurements, watering dates, and
+  manual watering
 
 ## Future: plant knowledge
 
