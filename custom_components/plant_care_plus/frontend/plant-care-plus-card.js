@@ -43,14 +43,14 @@ class PlantCarePlusCard extends HTMLElement {
   _renderBase() {
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: block; }
+        :host { display: block; container-type: inline-size; }
         ha-card { overflow: hidden; }
         .header {
           align-items: center;
           cursor: pointer;
           display: grid;
           gap: 16px;
-          grid-template-columns: 64px 1fr;
+          grid-template-columns: 64px minmax(0, 1fr);
           padding: 20px 20px 12px;
         }
         .picture {
@@ -65,12 +65,12 @@ class PlantCarePlusCard extends HTMLElement {
         }
         .picture img { height: 100%; object-fit: cover; width: 100%; }
         .picture ha-icon { color: var(--primary-color); --mdc-icon-size: 34px; }
-        h2 { font-size: 1.25rem; line-height: 1.3; margin: 0 0 4px; }
-        .status { font-weight: 600; text-transform: capitalize; }
+        h2 { font-size: 1.25rem; line-height: 1.3; margin: 0 0 4px; overflow-wrap: anywhere; }
+        .status { font-weight: 600; text-transform: capitalize; overflow-wrap: anywhere; }
         .status.ok { color: var(--success-color, #43a047); }
         .status.approaching, .status.check { color: var(--warning-color, #ff9800); }
         .status.needs_attention, .status.overdue { color: var(--error-color, #db4437); }
-        .reason { color: var(--secondary-text-color); margin: 0; padding: 0 20px 16px; }
+        .reason { color: var(--secondary-text-color); margin: 0; padding: 0 20px 16px; overflow-wrap: anywhere; }
         .stats {
           display: grid;
           gap: 1px;
@@ -96,7 +96,7 @@ class PlantCarePlusCard extends HTMLElement {
         .stat ha-icon { color: var(--state-icon-color); }
         .stat-label { color: var(--secondary-text-color); display: block; font-size: 0.78rem; }
         .stat-value { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .actions { display: flex; gap: 8px; padding: 16px 20px 20px; }
+        .actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 20px 20px; }
         .water {
           align-items: center;
           background: var(--primary-color);
@@ -108,12 +108,14 @@ class PlantCarePlusCard extends HTMLElement {
           font: inherit;
           font-weight: 600;
           gap: 8px;
-          min-height: 40px;
+          min-height: 44px;
+          max-width: 100%;
           padding: 0 18px;
         }
         .water:disabled { cursor: wait; opacity: 0.6; }
-        .message { align-self: center; color: var(--secondary-text-color); font-size: 0.85rem; }
-        @media (max-width: 420px) {
+        .message { align-self: center; color: var(--secondary-text-color); font-size: 0.85rem; overflow-wrap: anywhere; }
+        .header:focus-visible, button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+        @container (max-width: 420px) {
           .stats { grid-template-columns: 1fr; }
         }
       </style>
