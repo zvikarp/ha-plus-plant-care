@@ -153,3 +153,5 @@ See [Architecture](docs/ARCHITECTURE.md), [Actions](docs/ACTIONS.md), and the
 ## License
 
 MIT
+
+For a card/table dashboard with bulk watering, see [Plants dashboard](docs/UI.md#plants-dashboard).
