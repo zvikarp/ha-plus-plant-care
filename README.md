@@ -1,5 +1,7 @@
 # HA Plus Plant Care
 
+<img src="./custom_components/plant_care_plus/brand/icon.png" alt="HA Plus Plant Care" width="140">
+
 HA Plus Plant Care is a plant-centric companion integration for Home Assistant. It
 tracks care, schedules checks, keeps durable history, and progressively uses
 existing sensor entities when they are available.
