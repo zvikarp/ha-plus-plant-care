@@ -1,4 +1,4 @@
-"""Config and options flows for HA Plus Plant Care."""
+"""Config and options flows for HA+ Plant Care."""
 
 from __future__ import annotations
 
@@ -208,7 +208,7 @@ class PlantCarePlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def _async_import_plant_monitor(self) -> config_entries.ConfigFlowResult:
-        """Create one HA Plus entry for every unlinked Plant Monitor plant."""
+        """Create one HA+ entry for every unlinked Plant Monitor plant."""
         source_entry_ids, linked_entity_ids = _existing_plant_monitor_links(self.hass)
         plants = _plant_monitor_entities(self.hass)
         if not plants:

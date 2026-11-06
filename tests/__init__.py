@@ -1,1 +1,1 @@
-"""Tests for HA Plus Plant Care."""
+"""Tests for HA+ Plant Care."""

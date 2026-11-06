@@ -22,7 +22,7 @@ releases use semantic versioning.
   releases with the HACS archive attached.
 - Linked Plant Monitor entities now prefill their OpenPlantbook ID.
 - The initial setup screen can import every Plant Monitor plant that has not
-  already been added, while keeping one HA Plus entry per plant.
+  already been added, while keeping one HA+ entry per plant.
 
 ## [0.1.0] - 2026-09-09
 

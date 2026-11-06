@@ -1,4 +1,4 @@
-"""HA Plus Plant Care integration."""
+"""HA+ Plant Care integration."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 async def async_setup(hass: HomeAssistant, _config: dict) -> bool:
-    """Set up shared HA Plus Plant Care storage and actions."""
+    """Set up shared HA+ Plant Care storage and actions."""
     if "frontend" in hass.config.components:
         await async_register_card(hass)
     manager = PlantCareManager(hass)

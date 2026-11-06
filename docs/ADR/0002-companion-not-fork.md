@@ -2,6 +2,6 @@
 
 **Status:** Accepted
 
-HA Plus Plant Care consumes supported Home Assistant entity state and optionally
+HA+ Plant Care consumes supported Home Assistant entity state and optionally
 links existing plant/reference identifiers. It does not fork Plant Monitor or
 depend on undocumented internals, keeping ownership and upgrades independent.

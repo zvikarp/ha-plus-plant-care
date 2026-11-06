@@ -1,4 +1,4 @@
-"""Serve and register the HA Plus Plant Care Lovelace card."""
+"""Serve and register the HA+ Plant Care Lovelace card."""
 
 from pathlib import Path
 from typing import Final

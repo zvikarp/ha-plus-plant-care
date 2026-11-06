@@ -1,6 +1,6 @@
 {
   "domain": "plant_care_plus",
-  "name": "HA Plus Plant Care",
+  "name": "HA+ Plant Care",
   "after_dependencies": [
     "frontend"
   ],

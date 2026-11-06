@@ -71,7 +71,7 @@ class PlantCarePlusCard extends HTMLElement {
 
   setConfig(config) {
     if (!config?.entity || !config.entity.startsWith("sensor.")) {
-      throw new Error("Plant Care Plus card requires a care-status sensor entity");
+      throw new Error("HA+ Plant Care card requires a care-status sensor entity");
     }
     this._config = { ...config };
     this._update();
@@ -214,7 +214,7 @@ class PlantCarePlusCard extends HTMLElement {
       this.shadowRoot.querySelector("h2").textContent = "Plant unavailable";
       this.shadowRoot.querySelector(".status").textContent = this._config.entity;
       this.shadowRoot.querySelector(".reason").textContent =
-        "Select an HA Plus Plant Care status sensor.";
+        "Select an HA+ Plant Care status sensor.";
       this.shadowRoot.querySelector(".water").disabled = true;
       return;
     }
@@ -307,7 +307,7 @@ class PlantCarePlusCard extends HTMLElement {
       await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (error) {
       message.textContent = "Could not record watering. Please try again.";
-      console.error("Plant Care Plus could not record watering", error);
+      console.error("HA+ Plant Care could not record watering", error);
     } finally {
       this._watering = false;
       button.classList.remove("success");
@@ -327,7 +327,7 @@ window.customCards = window.customCards || [];
 if (!window.customCards.some((card) => card.type === CARD_TAG)) {
   window.customCards.push({
     type: CARD_TAG,
-    name: "Plant Care Plus",
+    name: "HA+ Plant Care",
     description: "Plant status, measurements, watering schedule, and care action.",
   });
 }
@@ -477,5 +477,5 @@ if (!customElements.get("plant-care-plus-dashboard")) {
   customElements.define("plant-care-plus-dashboard", PlantCarePlusDashboard);
 }
 if (!window.customCards.some((card) => card.type === "plant-care-plus-dashboard")) {
-  window.customCards.push({ type: "plant-care-plus-dashboard", name: "Plant Care Plus Dashboard", description: "All plants with card and table views and bulk watering." });
+  window.customCards.push({ type: "plant-care-plus-dashboard", name: "HA+ Plant Care Dashboard", description: "All plants with card and table views and bulk watering." });
 }

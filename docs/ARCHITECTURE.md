@@ -1,6 +1,6 @@
 # Architecture
 
-HA Plus Plant Care is plant-centric, useful without hardware, progressively
+HA+ Plant Care is plant-centric, useful without hardware, progressively
 enhanced by sensors, Home Assistant-native, and loosely coupled from Plant
 Monitor and OpenPlantbook.
 
@@ -15,7 +15,7 @@ Shared versioned storage owns two kinds of durable state:
 
 One coordinator per plant resolves explicit assignments, linked-plant sensors,
 and ambient area sensors, observes those source entities, and runs the pure care
-engine. Stable HA Plus Plant Care entities subscribe to that coordinator. When
+engine. Stable HA+ Plant Care entities subscribe to that coordinator. When
 a manual sensor moves, only assignments and subscriptions change.
 
 ```text
@@ -34,7 +34,7 @@ User options override initial/reference values. Selecting an existing `plant.*`
 entity prefills its public name, Home Assistant area, and OpenPlantbook ID and
 reuses the public sensor mapping exposed in its state attributes. Bulk import
 discovers Plant Monitor through Home Assistant's config-entry and entity
-registries, then creates one normal HA Plus Plant Care config flow per missing
+registries, then creates one normal HA+ Plant Care config flow per missing
 plant. Source config-entry IDs provide stable duplicate detection even if a
 linked entity is renamed.
 

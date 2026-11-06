@@ -1,4 +1,4 @@
-"""Shared HA Plus Plant Care test fixtures."""
+"""Shared HA+ Plant Care test fixtures."""
 
 import pytest
 

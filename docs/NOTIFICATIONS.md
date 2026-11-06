@@ -1,6 +1,6 @@
 # Notifications
 
-HA Plus Plant Care determines care state and exposes
+HA+ Plant Care determines care state and exposes
 `binary_sensor.<plant>_needs_attention`. Home Assistant automations own delivery,
 quiet hours, recipients, and channels. The integration does not introduce a
 parallel notification framework.

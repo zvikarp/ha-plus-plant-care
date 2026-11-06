@@ -1,8 +1,8 @@
-# HA Plus Plant Care
+# HA+ Plant Care
 
-<img src="./custom_components/plant_care_plus/brand/icon.png" alt="HA Plus Plant Care" width="140">
+<img src="./custom_components/plant_care_plus/brand/icon.png" alt="HA+ Plant Care" width="140">
 
-HA Plus Plant Care is a plant-centric companion integration for Home Assistant. It
+HA+ Plant Care is a plant-centric companion integration for Home Assistant. It
 tracks care, schedules checks, keeps durable history, and progressively uses
 existing sensor entities when they are available.
 
@@ -35,11 +35,11 @@ history or recreates either plant.
 
 1. In HACS, open **Integrations**, choose **Custom repositories**, and add
    `https://github.com/zvikarp/ha-plus-plant-care` with the **Integration** type.
-2. Search for **HA Plus Plant Care** and install it. HACS installs directly from
+2. Search for **HA+ Plant Care** and install it. HACS installs directly from
    the repository, so a GitHub Release is not required for personal use.
 3. Restart Home Assistant.
 4. Open **Settings → Devices & services → Add integration**, search for
-   **HA Plus Plant Care**, and add each real plant.
+   **HA+ Plant Care**, and add each real plant.
 
 ### Manual
 
@@ -53,7 +53,7 @@ Adding a plant first offers an optional existing Home Assistant `plant.*`
 entity. When selected, its name, area, and OpenPlantbook ID prefill the profile
 and its exposed plant sensors are reused. The same screen can add every Plant
 Monitor plant that has not already been linked; each imported plant remains its
-own independent HA Plus Plant Care entry. Temperature, humidity, and illuminance
+own independent HA+ Plant Care entry. Temperature, humidity, and illuminance
 sensors in each plant's area are discovered automatically. Plants without an
 area still import and remain fully usable without ambient sensors; an area can
 be assigned later from the plant's integration options.

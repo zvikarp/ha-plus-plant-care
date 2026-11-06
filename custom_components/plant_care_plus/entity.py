@@ -1,4 +1,4 @@
-"""Shared HA Plus Plant Care entity behavior."""
+"""Shared HA+ Plant Care entity behavior."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ class PlantCareEntity(CoordinatorEntity[PlantCoordinator]):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, plant.plant_id)},
             name=plant.name,
-            manufacturer="HA Plus Plant Care",
+            manufacturer="HA+ Plant Care",
             model="Plant",
             suggested_area=plant.area_id,
         )
