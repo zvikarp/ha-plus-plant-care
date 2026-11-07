@@ -100,3 +100,23 @@ test('bulk success shows a check for three seconds and restores an empty selecti
   assert.equal(button.textContent, 'Mark selected watered (0)');
   assert.ok(button.disabled);
 });
+
+test('card and dashboard use only the shared app stylesheet and semantic status tones', async () => {
+  const { appStyles } = await import('@ha-plus/ui');
+  for (const tag of ['plant-care-plus-card', 'plant-care-plus-dashboard']) {
+    const { card, hass } = setup(tag);
+    const views = [card, ...card.shadowRoot.querySelectorAll('plant-care-plus-card')];
+    for (const view of views) {
+      assert.equal(view.shadowRoot.querySelectorAll('style').length, 1);
+      assert.equal(view.shadowRoot.querySelector('style').textContent, appStyles);
+      assert.equal(view.shadowRoot.querySelector('[style]'), null);
+    }
+    if (tag === 'plant-care-plus-card') {
+      for (const [state, tone] of [['ok', 'success'], ['approaching', 'warning'], ['check', 'warning'], ['needs_attention', 'error'], ['overdue', 'error'], ['unknown', '']]) {
+        hass.states['sensor.fern'].state = state;
+        card.hass = hass;
+        assert.equal(card.shadowRoot.querySelector('.status').dataset.tone, tone);
+      }
+    }
+  }
+});
