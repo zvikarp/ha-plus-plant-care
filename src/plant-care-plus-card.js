@@ -1,4 +1,4 @@
-import { themeStyles, confirmDialog } from "@ha-plus/ui";
+import { appStyles, confirmDialog } from "@ha-plus/ui";
 
 const CARD_TAG = "plant-care-plus-card";
 const DOMAIN = "plant_care_plus";
@@ -13,16 +13,6 @@ const STAT_ROWS = [
   ["illuminance", "Illuminance", "mdi:brightness-5"],
   ["conductivity", "Conductivity", "mdi:flash"],
 ];
-
-const ACTION_STYLES = `
-  .water { position: relative; overflow: hidden; justify-content: center; }
-  .water.success { background: var(--success-color, #43a047); opacity: 1; cursor: default; }
-  .water.success::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: #fff6; animation: splash 600ms ease-out forwards; }
-  .water.success ha-icon { animation: check-in 350ms ease-out; }
-  @keyframes splash { from { transform: scale(0); opacity: 1; } to { transform: scale(2); opacity: 0; } }
-  @keyframes check-in { from { transform: scale(0.4); } to { transform: scale(1); } }
-  @media (prefers-reduced-motion: reduce) { .water.success::after, .water.success ha-icon { animation: none; } .water.success::after { display: none; } }
-`;
 
 function confirmWater(host, names) {
   return confirmDialog(host, {
@@ -78,103 +68,27 @@ class PlantCarePlusCard extends HTMLElement {
 
   _renderBase() {
     this.shadowRoot.innerHTML = `
-      <style>${themeStyles}${ACTION_STYLES}
-        :host { container-type: inline-size; }
-        ha-card { overflow: hidden; }
-        .header {
-          align-items: center;
-          cursor: pointer;
-          display: grid;
-          gap: 16px;
-          grid-template-columns: 64px minmax(0, 1fr);
-          padding: 20px 20px 12px;
-        }
-        .picture {
-          align-items: center;
-          background: var(--secondary-background-color);
-          border-radius: 50%;
-          display: flex;
-          height: 64px;
-          justify-content: center;
-          overflow: hidden;
-          width: 64px;
-        }
-        .picture img { height: 100%; object-fit: cover; width: 100%; }
-        .picture ha-icon { color: var(--primary-color); --mdc-icon-size: 34px; }
-        h2 { font-size: 1.25rem; line-height: 1.3; margin: 0 0 4px; overflow-wrap: anywhere; }
-        .status { font-weight: 600; text-transform: capitalize; overflow-wrap: anywhere; }
-        .status.ok { color: var(--success-color, #43a047); }
-        .status.approaching, .status.check { color: var(--warning-color, #ff9800); }
-        .status.needs_attention, .status.overdue { color: var(--error-color, #db4437); }
-        .reason { color: var(--secondary-text-color); margin: 0; padding: 0 20px 16px; overflow-wrap: anywhere; }
-        .stats {
-          display: grid;
-          gap: 1px;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          background: var(--divider-color);
-          border-block: 1px solid var(--divider-color);
-        }
-        .stat {
-          border-radius: 0;
-          align-items: center;
-          background: var(--card-background-color);
-          border: 0;
-          color: var(--primary-text-color);
-          cursor: pointer;
-          display: grid;
-          font: inherit;
-          gap: 10px;
-          grid-template-columns: 24px minmax(0, 1fr);
-          min-height: 64px;
-          padding: 10px 14px;
-          text-align: left;
-        }
-        .stat:hover { background: var(--secondary-background-color); }
-        .stat ha-icon { color: var(--state-icon-color); }
-        .stat-label { color: var(--secondary-text-color); display: block; font-size: 0.78rem; }
-        .stat-value { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 20px 20px; }
-        .water {
-          align-items: center;
-          background: var(--primary-color);
-          border: 0;
-          color: var(--text-primary-color, white);
-          cursor: pointer;
-          display: inline-flex;
-          font: inherit;
-          font-weight: 600;
-          gap: 8px;
-          min-height: 44px;
-          max-width: 100%;
-          padding: 0 18px;
-        }
-        .water:disabled { cursor: wait; opacity: 0.6; }
-        .message { align-self: center; color: var(--secondary-text-color); font-size: 0.85rem; overflow-wrap: anywhere; }
-        .header:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
-        @container (max-width: 420px) {
-          .stats { grid-template-columns: 1fr; }
-        }
-      </style>
-      <ha-card>
-        <div class="header">
-          <div class="picture"><ha-icon icon="mdi:sprout"></ha-icon></div>
-          <div><h2></h2><span class="status"></span></div>
+      <style>${appStyles}</style>
+      <ha-card class="ha-plus-detail-card">
+        <div class="header ha-plus-card-header">
+          <div class="picture ha-plus-avatar"><ha-icon icon="mdi:sprout"></ha-icon></div>
+          <div><h2></h2><span class="status ha-plus-status"></span></div>
         </div>
-        <p class="reason"></p>
-        <div class="stats"></div>
-        <div class="actions">
-          <button class="water" type="button"><ha-icon icon="mdi:watering-can"></ha-icon>Mark watered</button>
-          <span class="message" role="status" aria-live="polite"></span>
+        <p class="reason ha-plus-description"></p>
+        <div class="stats ha-plus-stats"></div>
+        <div class="ha-plus-card-actions">
+          <button class="water primary ha-plus-feedback" type="button"><ha-icon icon="mdi:watering-can"></ha-icon>Mark watered</button>
+          <span class="message ha-plus-message" role="status" aria-live="polite"></span>
         </div>
       </ha-card>`;
 
     const stats = this.shadowRoot.querySelector(".stats");
     for (const [key, label, icon] of STAT_ROWS) {
       const button = document.createElement("button");
-      button.className = "stat";
+      button.className = "stat ha-plus-stat";
       button.type = "button";
       button.dataset.key = key;
-      button.innerHTML = `<ha-icon icon="${icon}"></ha-icon><span><span class="stat-label">${label}</span><span class="stat-value">—</span></span>`;
+      button.innerHTML = `<ha-icon icon="${icon}"></ha-icon><span><span class="ha-plus-stat-label">${label}</span><span class="stat-value ha-plus-stat-value">—</span></span>`;
       button.addEventListener("click", () => this._showMoreInfo(key));
       stats.append(button);
     }
@@ -218,7 +132,8 @@ class PlantCarePlusCard extends HTMLElement {
     this.shadowRoot.querySelector("h2").textContent = name;
     const status = this.shadowRoot.querySelector(".status");
     status.textContent = this._label(statusEntity.state);
-    status.className = `status ${statusEntity.state}`;
+    const tones = { ok: "success", approaching: "warning", check: "warning", needs_attention: "error", overdue: "error" };
+    status.dataset.tone = tones[statusEntity.state] || "";
     this.shadowRoot.querySelector(".reason").textContent =
       statusEntity.attributes.reason || "No care recommendation available.";
     this.shadowRoot.querySelector(".water").disabled = Boolean(this._watering);
@@ -332,19 +247,7 @@ class PlantCarePlusDashboard extends PlantCarePlusCard {
   _renderBase() {
     this._selected = new Set();
     this._items = new Map();
-    this.shadowRoot.innerHTML = `<style>${themeStyles}${ACTION_STYLES}
-      :host { display: block; }
-      .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
-      .toolbar button[aria-pressed=true], .water { background: var(--primary-color); color: var(--text-primary-color, white); }
-      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
-      .table { overflow-x: auto; background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 12px; }
-      table { border-collapse: collapse; width: 100%; white-space: nowrap; }
-      th, td { text-align: start; padding: 12px; border-bottom: 1px solid var(--divider-color); }
-      input { width: 20px; height: 20px; accent-color: var(--primary-color); cursor: pointer; }
-      .name { border: 0; padding: 4px; text-align: start; }
-      .message { color: var(--secondary-text-color); }
-      [hidden] { display: none !important; }
-    </style><div class="toolbar" aria-label="Plant view"><button class="card-view" aria-pressed="true">Cards</button><button class="table-view" aria-pressed="false">Table</button><button class="water" hidden>Mark selected watered</button><span class="message" role="status" aria-live="polite"></span></div><div class="cards"></div><div class="table" hidden tabindex="0" role="region" aria-label="Plants table"><table><thead><tr><th><input type="checkbox" aria-label="Select all plants"></th><th scope="col">Plant</th><th scope="col">Status</th>${STAT_ROWS.map(([, label]) => `<th scope="col">${label}</th>`).join("")}</tr></thead><tbody></tbody></table></div><p class="empty" hidden>No plants available.</p>`;
+    this.shadowRoot.innerHTML = `<style>${appStyles}</style><div class="toolbar ha-plus-toolbar" aria-label="Plant view"><button class="card-view" aria-pressed="true">Cards</button><button class="table-view" aria-pressed="false">Table</button><button class="water primary ha-plus-feedback" hidden>Mark selected watered</button><span class="message ha-plus-message" role="status" aria-live="polite"></span></div><div class="cards ha-plus-card-grid"></div><div class="table ha-plus-table" hidden tabindex="0" role="region" aria-label="Plants table"><table><thead><tr><th><input type="checkbox" aria-label="Select all plants"></th><th scope="col">Plant</th><th scope="col">Status</th>${STAT_ROWS.map(([, label]) => `<th scope="col">${label}</th>`).join("")}</tr></thead><tbody></tbody></table></div><p class="empty" hidden>No plants available.</p>`;
     this.shadowRoot.querySelector(".card-view").onclick = () => this._setView(false);
     this.shadowRoot.querySelector(".table-view").onclick = () => this._setView(true);
     this.shadowRoot.querySelector("thead input").onchange = (event) => {
@@ -382,7 +285,7 @@ class PlantCarePlusDashboard extends PlantCarePlusCard {
         card.setConfig({ entity: id });
         this.shadowRoot.querySelector(".cards").append(card);
         const row = document.createElement("tr");
-        row.innerHTML = `<td><input type="checkbox"></td><th scope="row"><button class="name"></button></th><td class="status"></td>${STAT_ROWS.map(([key]) => `<td data-key="${key}"></td>`).join("")}`;
+        row.innerHTML = `<td><input type="checkbox"></td><th scope="row"><button class="name ha-plus-text-button"></button></th><td class="status ha-plus-status"></td>${STAT_ROWS.map(([key]) => `<td data-key="${key}"></td>`).join("")}`;
         row.querySelector("input").onchange = (event) => {
           if (event.target.checked) this._selected.add(id); else this._selected.delete(id);
           this._updateSelection();

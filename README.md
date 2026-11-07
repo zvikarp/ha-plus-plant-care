@@ -169,3 +169,8 @@ remain self-contained. `npm run check:build` detects generated-file drift.
 Upgrade the UI dependency by installing a versioned tarball asset from the
 packages repository's releases, rebuilding and running the frontend tests.
 Commit `package.json`, `package-lock.json` and the rebuilt frontend together.
+
+UI styling belongs entirely to `@ha-plus/ui`. Use its `appStyles` stylesheet
+and shared presentation classes. Add reusable styles to the package when
+needed, then upgrade the pinned dependency. Keep app source free of CSS rules,
+inline styles and style-property writes.
