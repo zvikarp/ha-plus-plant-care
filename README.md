@@ -157,3 +157,15 @@ See [Architecture](docs/ARCHITECTURE.md), [Actions](docs/ACTIONS.md), and the
 MIT
 
 For a card/table dashboard with bulk watering, see [Plants dashboard](docs/UI.md#plants-dashboard).
+
+## Shared UI development
+
+Edit `src/plant-care-plus-card.js` and run `npm ci` followed by `npm run build`
+from the repository root. Commit the generated frontend file with its source.
+The integration bundles a pinned release of
+[`@ha-plus/ui`](https://github.com/zvikarp/ha-plus-packages) so HACS installs
+remain self-contained. `npm run check:build` detects generated-file drift.
+
+Upgrade the UI dependency by installing a versioned tarball asset from the
+packages repository's releases, rebuilding and running the frontend tests.
+Commit `package.json`, `package-lock.json` and the rebuilt frontend together.

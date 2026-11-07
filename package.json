@@ -1,0 +1,14 @@
+{
+  "name": "ha-plus-plant-care-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/plant-care-plus-card.js --bundle --format=iife --target=es2022 --legal-comments=inline --outfile=custom_components/plant_care_plus/frontend/plant-care-plus-card.js",
+    "check:build": "npm run build && git diff --exit-code -- custom_components",
+    "test": "npm --prefix tests/frontend test"
+  },
+  "devDependencies": {
+    "@ha-plus/ui": "https://github.com/zvikarp/ha-plus-packages/releases/download/ui-v0.1.0/ha-plus-ui-0.1.0.tgz",
+    "esbuild": "0.25.12"
+  }
+}
