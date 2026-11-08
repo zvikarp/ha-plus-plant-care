@@ -1,0 +1,5 @@
+{
+  "package": "@ha-plus/frontend",
+  "version": "0.1.0",
+  "repository": "git+https://github.com/zvikarp/ha-plus-packages.git"
+}

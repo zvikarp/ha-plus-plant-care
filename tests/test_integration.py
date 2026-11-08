@@ -139,12 +139,14 @@ async def test_card_registration_uses_supported_frontend_apis() -> None:
     hass.http.async_register_static_paths = AsyncMock()
     with (
         patch(
-            "homeassistant.loader.async_get_integration",
+            "custom_components.plant_care_plus.ha_plus_frontend.async_get_integration",
             new=AsyncMock(return_value=MagicMock(version="0.1.8")),
         ),
-        patch("custom_components.plant_care_plus.frontend.add_extra_js_url") as add,
         patch(
-            "custom_components.plant_care_plus.frontend.async_register_panel",
+            "custom_components.plant_care_plus.ha_plus_frontend.add_extra_js_url"
+        ) as add,
+        patch(
+            "custom_components.plant_care_plus.ha_plus_frontend.async_register_panel",
             new=AsyncMock(),
         ) as panel,
     ):
