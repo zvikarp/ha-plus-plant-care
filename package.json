@@ -10,6 +10,6 @@
   "devDependencies": {
     "@ha-plus/ui": "https://github.com/zvikarp/ha-plus-packages/releases/download/ui-v0.3.4/ha-plus-ui-0.3.4.tgz",
     "esbuild": "0.25.12",
-    "@ha-plus/frontend": "https://github.com/zvikarp/ha-plus-packages/releases/download/frontend-v0.1.0/ha-plus-frontend-0.1.0.tgz"
+    "@ha-plus/frontend": "https://github.com/zvikarp/ha-plus-packages/releases/download/frontend-v0.1.2/ha-plus-frontend-0.1.2.tgz"
   }
 }
