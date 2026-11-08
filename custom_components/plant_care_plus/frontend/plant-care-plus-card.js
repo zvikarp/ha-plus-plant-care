@@ -758,7 +758,7 @@
   }
 
   // node_modules/@ha-plus/ui/src/index.js
-  /*! @ha-plus/ui v0.4.0-rc.3 | MIT | Copyright (c) 2026 HA+ contributors | https://github.com/zvikarp/ha-plus-packages/blob/main/LICENSE */
+  /*! @ha-plus/ui v0.4.0-rc.4 | MIT | Copyright (c) 2026 HA+ contributors | https://github.com/zvikarp/ha-plus-packages/blob/main/LICENSE */
   var nextId = 0;
   function confirmDialog(host, { title, message, confirmLabel = "Confirm", cancelLabel = "Cancel", returnFocus = host.shadowRoot.activeElement }) {
     if (document.defaultView?.customElements.get("ha-dialog")) {
@@ -809,14 +809,23 @@
     dialog.append(content);
     return new Promise((resolve) => {
       let settled = false;
+      let response = false;
+      let closing = false;
       const finish = (confirmed) => {
         if (settled) return;
         settled = true;
         observer.disconnect();
-        dialog.open = false;
         dialog.remove();
         resolve(confirmed);
-        Promise.resolve().then(() => focusControl(returnFocus));
+        host.ownerDocument.defaultView.requestAnimationFrame(() => focusControl(returnFocus));
+      };
+      const close = (confirmed) => {
+        if (closing || settled) return;
+        closing = true;
+        response = confirmed;
+        cancel.disabled = true;
+        confirm.disabled = true;
+        dialog.open = false;
       };
       const observer = new host.ownerDocument.defaultView.MutationObserver(() => {
         if (!host.shadowRoot.contains(dialog) || connected && !host.isConnected) finish(false);
@@ -824,9 +833,9 @@
       const connected = host.isConnected;
       observer.observe(host.shadowRoot, { childList: true });
       if (connected) observer.observe(host.ownerDocument, { childList: true, subtree: true });
-      const cancel = button(cancelLabel, () => finish(false));
+      const cancel = button(cancelLabel, () => close(false));
       cancel.setAttribute("autofocus", "");
-      const confirm = button(confirmLabel, () => finish(true), false, "primary");
+      const confirm = button(confirmLabel, () => close(true), false, "primary");
       if (modern) {
         const footer = el("div", void 0, "ha-plus-dialog-actions");
         footer.slot = "footer";
@@ -837,7 +846,7 @@
         confirm.slot = "primaryAction";
         dialog.append(cancel, confirm);
       }
-      dialog.addEventListener("closed", () => finish(false));
+      dialog.addEventListener("closed", () => finish(response));
       host.shadowRoot.append(dialog);
       dialog.open = true;
       Promise.resolve(dialog.updateComplete).then(() => {
