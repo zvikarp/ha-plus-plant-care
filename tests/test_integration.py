@@ -157,6 +157,8 @@ async def test_card_registration_uses_supported_frontend_apis() -> None:
     add.assert_called_once_with(hass, f"{CARD_URL}?v=0.1.8")
     assert panel.call_args.kwargs["frontend_url_path"] == "ha-plus-plant-care"
     assert panel.call_args.kwargs["require_admin"] is False
+    assert panel.call_args.kwargs["sidebar_icon"] == "plant-care-plus:logo"
+    assert panel.call_args.kwargs["config"] == {"version": "0.1.8"}
 
 
 async def test_care_status_exposes_current_card_entities(hass) -> None:

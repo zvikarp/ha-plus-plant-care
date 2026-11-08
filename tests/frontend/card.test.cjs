@@ -69,7 +69,7 @@ test('dashboard switches views, selects all and retains only failed targets', as
   const { card, hass, calls } = setup('plant-care-plus-dashboard');
   const root = card.shadowRoot;
   assert.equal(root.querySelectorAll('tbody tr').length, 2);
-  root.querySelector('.table-view').click();
+  root.querySelector('[role=tab][data-value=table]').click();
   assert.equal(root.querySelector('.table').hidden, false);
   assert.equal(root.querySelector('.cards').hidden, true);
   root.querySelector('thead input').click();
@@ -102,13 +102,13 @@ test('bulk success shows a check for three seconds and restores an empty selecti
 });
 
 test('card and dashboard use only the shared app stylesheet and semantic status tones', async () => {
-  const { appStyles } = await import('@ha-plus/ui');
+  const { appStyles, tabStyles } = await import('@ha-plus/ui');
   for (const tag of ['plant-care-plus-card', 'plant-care-plus-dashboard']) {
     const { card, hass } = setup(tag);
     const views = [card, ...card.shadowRoot.querySelectorAll('plant-care-plus-card')];
     for (const view of views) {
       assert.equal(view.shadowRoot.querySelectorAll('style').length, 1);
-      assert.equal(view.shadowRoot.querySelector('style').textContent, appStyles);
+      assert.equal(view.shadowRoot.querySelector('style').textContent, view.localName.endsWith('dashboard') ? appStyles + tabStyles : appStyles);
       assert.equal(view.shadowRoot.querySelector('[style]'), null);
     }
     if (tag === 'plant-care-plus-card') {
@@ -135,4 +135,17 @@ test('built-in panel reuses the dashboard and exposes one shared app header', ()
   const header = panel.shadowRoot.querySelector('header');
   panel.hass = { ...hass };
   assert.equal(panel.shadowRoot.querySelector('header'), header);
+});
+
+test('plant views are linked tab panels and follow keyboard selection', () => {
+  const { card, window } = setup('plant-care-plus-dashboard');
+  const root = card.shadowRoot;
+  const [cards, table] = root.querySelectorAll('[role=tab]');
+  assert.equal(cards.getAttribute('aria-selected'), 'true');
+  assert.equal(root.querySelector('.table').hidden, true);
+  cards.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  assert.equal(table.getAttribute('aria-selected'), 'true');
+  assert.equal(table.tabIndex, 0);
+  assert.equal(root.querySelector('.cards').hidden, true);
+  assert.equal(root.querySelector('.table').getAttribute('aria-labelledby'), table.id);
 });

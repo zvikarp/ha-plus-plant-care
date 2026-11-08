@@ -38,8 +38,8 @@ async def async_register_card(hass: HomeAssistant) -> None:
         webcomponent_name="plant-care-plus-panel",
         frontend_url_path="ha-plus-plant-care",
         sidebar_title="HA+ Plant Care",
-        sidebar_icon="mdi:flower",
+        sidebar_icon="plant-care-plus:logo",
         module_url=url,
         require_admin=False,
-        config={},
+        config={"version": str(integration.version)},
     )
