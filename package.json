@@ -8,7 +8,7 @@
     "test": "npm --prefix tests/frontend test"
   },
   "devDependencies": {
-    "@ha-plus/ui": "https://github.com/zvikarp/ha-plus-packages/releases/download/ui-v0.3.3/ha-plus-ui-0.3.3.tgz",
+    "@ha-plus/ui": "https://github.com/zvikarp/ha-plus-packages/releases/download/ui-v0.3.4/ha-plus-ui-0.3.4.tgz",
     "esbuild": "0.25.12"
   }
 }
