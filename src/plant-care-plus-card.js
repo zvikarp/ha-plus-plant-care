@@ -21,6 +21,7 @@ const STAT_ROWS = [
 function confirmWater(host, names) {
   return confirmDialog(host, {
     title: host._t("record_watering"),
+    returnFocus: host.shadowRoot.querySelector(".water"),
     message: host._t(names.length === 1 ? "confirm_water_one" : "confirm_water_many", { name: names[0], count: names.length }) + (names.length > 1 ? `\n\n${names.join("\n")}` : ""),
     confirmLabel: host._t("mark_watered"),
     cancelLabel: host._t("common.cancel"),

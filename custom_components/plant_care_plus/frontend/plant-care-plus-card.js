@@ -98,6 +98,16 @@
     });
     return node;
   }
+  async function focusControl(control) {
+    if (!control) return;
+    await control.updateComplete;
+    if (!control.isConnected) return;
+    const inner = control.shadowRoot?.querySelector(
+      "ha-selector, ha-selector-select, ha-select, ha-picker-field, ha-combo-box, ha-input, ha-textfield, input, textarea, button, [tabindex='0']"
+    );
+    if (inner) return focusControl(inner);
+    control.focus?.();
+  }
 
   // node_modules/@ha-plus/ui/src/styles.js
   var themeStyles = `
@@ -124,7 +134,7 @@
   .listbox { position:absolute; z-index:10; inset-inline:0; top:100%; margin-top:4px; max-height:300px; overflow:auto; padding:6px; background:var(--card-background-color,#fff); border:1px solid var(--divider-color,#e0e0e0); border-radius:14px; box-shadow:var(--ha-card-box-shadow,0 4px 16px #0003); }
   .option { display:block; width:100%; text-align:start; border-radius:10px; background:transparent; color:var(--primary-text-color,#212121); white-space:normal; overflow-wrap:anywhere; }
   .option[aria-selected=true] { color:var(--primary-color,#03a9f4); background:var(--secondary-background-color,#f5f5f5); }
-  .ha-plus-header { display:flex; align-items:center; gap:12px; padding:12px 16px; min-height:64px; background:var(--app-header-background-color,var(--primary-background-color,#fafafa)); color:var(--app-header-text-color,var(--primary-text-color,#212121)); }
+  .ha-plus-header { display:flex; align-items:center; gap:12px; padding:4px 16px; min-height:var(--header-height,56px); background:var(--app-header-background-color,var(--primary-background-color,#fafafa)); color:var(--app-header-text-color,var(--primary-text-color,#212121)); }
   .ha-plus-header h1 { font-size:20px; font-weight:400; flex:1; margin:0; }
   .ha-plus-content { max-width:1000px; margin:auto; padding:24px; }
   .notice { padding:12px 16px; margin-bottom:16px; background:var(--secondary-background-color,#f5f5f5); border-radius:14px; overflow-wrap:anywhere; }
@@ -748,11 +758,11 @@
   }
 
   // node_modules/@ha-plus/ui/src/index.js
-  /*! @ha-plus/ui v0.4.0-rc.1 | MIT | Copyright (c) 2026 HA+ contributors | https://github.com/zvikarp/ha-plus-packages/blob/main/LICENSE */
+  /*! @ha-plus/ui v0.4.0-rc.3 | MIT | Copyright (c) 2026 HA+ contributors | https://github.com/zvikarp/ha-plus-packages/blob/main/LICENSE */
   var nextId = 0;
-  function confirmDialog(host, { title, message, confirmLabel = "Confirm", cancelLabel = "Cancel" }) {
+  function confirmDialog(host, { title, message, confirmLabel = "Confirm", cancelLabel = "Cancel", returnFocus = host.shadowRoot.activeElement }) {
     if (document.defaultView?.customElements.get("ha-dialog")) {
-      return nativeConfirmation(host, { title, message, confirmLabel, cancelLabel });
+      return nativeConfirmation(host, { title, message, confirmLabel, cancelLabel, returnFocus });
     }
     const dialog = el("dialog");
     const id = `ha-plus-dialog-${++nextId}`;
@@ -779,6 +789,7 @@
         const confirmed = dialog.returnValue === "confirm";
         dialog.remove();
         resolve(confirmed);
+        Promise.resolve().then(() => focusControl(returnFocus));
       }, { once: true });
       try {
         dialog.showModal();
@@ -788,7 +799,7 @@
       }
     });
   }
-  function nativeConfirmation(host, { title, message, confirmLabel, cancelLabel }) {
+  function nativeConfirmation(host, { title, message, confirmLabel, cancelLabel, returnFocus }) {
     const dialog = el("ha-dialog");
     const modern = "headerTitle" in dialog;
     dialog.heading = title;
@@ -796,7 +807,6 @@
     dialog.setAttribute("header-title", title);
     const content = el("p", message, "ha-plus-dialog-message");
     dialog.append(content);
-    const previous = host.shadowRoot.activeElement;
     return new Promise((resolve) => {
       let settled = false;
       const finish = (confirmed) => {
@@ -805,8 +815,8 @@
         observer.disconnect();
         dialog.open = false;
         dialog.remove();
-        previous?.focus();
         resolve(confirmed);
+        Promise.resolve().then(() => focusControl(returnFocus));
       };
       const observer = new host.ownerDocument.defaultView.MutationObserver(() => {
         if (!host.shadowRoot.contains(dialog) || connected && !host.isConnected) finish(false);
@@ -815,6 +825,7 @@
       observer.observe(host.shadowRoot, { childList: true });
       if (connected) observer.observe(host.ownerDocument, { childList: true, subtree: true });
       const cancel = button(cancelLabel, () => finish(false));
+      cancel.setAttribute("autofocus", "");
       const confirm = button(confirmLabel, () => finish(true), false, "primary");
       if (modern) {
         const footer = el("div", void 0, "ha-plus-dialog-actions");
@@ -830,7 +841,7 @@
       host.shadowRoot.append(dialog);
       dialog.open = true;
       Promise.resolve(dialog.updateComplete).then(() => {
-        if (!settled) cancel.focus();
+        if (!settled) focusControl(cancel);
       });
     });
   }
@@ -852,6 +863,7 @@
   function confirmWater(host, names) {
     return confirmDialog(host, {
       title: host._t("record_watering"),
+      returnFocus: host.shadowRoot.querySelector(".water"),
       message: host._t(names.length === 1 ? "confirm_water_one" : "confirm_water_many", { name: names[0], count: names.length }) + (names.length > 1 ? `
 
 ${names.join("\n")}` : ""),
