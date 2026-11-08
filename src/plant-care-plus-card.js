@@ -1,44 +1,42 @@
-import { appStyles, confirmDialog } from "@ha-plus/ui";
+import messages from "./translations/en.json";
+import { localize, haContext } from "@ha-plus/ui";
+const t = (key, values) => localize(haContext(), messages, key, values);
+
+import { appStyles, confirmDialog, actionButton, applyPreferences, formatEntityState, relativeCalendarDate, showMoreInfo, showToast, setActionState, loadNativeComponents, iconButton, integrationUrl, navigate } from "@ha-plus/ui";
 
 const CARD_TAG = "plant-care-plus-card";
 const DOMAIN = "plant_care_plus";
 
 const STAT_ROWS = [
-  ["last_watered", "Last watered", "mdi:water-check"],
-  ["next_watering", "Next check", "mdi:calendar-clock"],
-  ["days_since_watered", "Days since", "mdi:calendar-range"],
-  ["moisture", "Moisture", "mdi:water-percent"],
-  ["temperature", "Temperature", "mdi:thermometer"],
-  ["humidity", "Humidity", "mdi:water-percent"],
-  ["illuminance", "Illuminance", "mdi:brightness-5"],
-  ["conductivity", "Conductivity", "mdi:flash"],
+  ["last_watered", t("last_watered"), "mdi:water-check"],
+  ["next_watering", t("next_check"), "mdi:calendar-clock"],
+  ["days_since_watered", t("days_since"), "mdi:calendar-range"],
+  ["moisture", t("moisture"), "mdi:water-percent"],
+  ["temperature", t("temperature"), "mdi:thermometer"],
+  ["humidity", t("humidity"), "mdi:water-percent"],
+  ["illuminance", t("illuminance"), "mdi:brightness-5"],
+  ["conductivity", t("conductivity"), "mdi:flash"],
 ];
 
 function confirmWater(host, names) {
   return confirmDialog(host, {
-    title: "Record watering?",
-    message: `Mark ${names.length === 1 ? names[0] : `${names.length} plants`} as watered now?` + (names.length > 1 ? `\n\n${names.join("\n")}` : ""),
-    confirmLabel: "Mark watered",
+    title: host._t("record_watering"),
+    returnFocus: host.shadowRoot.querySelector(".water"),
+    message: host._t(names.length === 1 ? "confirm_water_one" : "confirm_water_many", { name: names[0], count: names.length }) + (names.length > 1 ? `\n\n${names.join("\n")}` : ""),
+    confirmLabel: host._t("mark_watered"),
+    cancelLabel: host._t("common.cancel"),
   });
 }
 
 function relativeDate(entity, key, hass) {
   if (!entity || !["last_watered", "next_watering"].includes(key)) return null;
-  const timestamp = Date.parse(entity.state);
-  if (!Number.isFinite(timestamp)) return null;
-  // Compare calendar dates in Home Assistant's timezone, including DST boundaries.
-  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: hass.config?.time_zone, year: "numeric", month: "2-digit", day: "2-digit" });
-  const day = (date) => {
-    const parts = Object.fromEntries(formatter.formatToParts(date).map(({ type, value }) => [type, value]));
-    return Date.UTC(+parts.year, +parts.month - 1, +parts.day) / 86400000;
-  };
-  const days = day(timestamp) - day(Date.now());
-  if (days === 0) return "Today";
-  const count = Math.abs(days);
-  return days < 0 ? `${count} day${count === 1 ? "" : "s"} ago` : `In ${count} day${count === 1 ? "" : "s"}`;
+  const result = relativeCalendarDate(hass, entity.state);
+  return result ? result[0].toUpperCase() + result.slice(1) : null;
 }
 
 class PlantCarePlusCard extends HTMLElement {
+  _t(key, values) { return localize(this._hass, messages, key, values); }
+
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -55,7 +53,48 @@ class PlantCarePlusCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    applyPreferences(this, hass);
+    if (hass.connection && !this._nativeLoading && !this._nativeReady) {
+      this._nativeLoading = true;
+      loadNativeComponents(this).then(() => {
+        this._nativeReady = true;
+        this._upgradeActions();
+      }).catch(error => {
+        const message = this.shadowRoot.querySelector(".message");
+        if (message) message.textContent = error.message;
+      }).finally(() => { this._nativeLoading = false; });
+    }
+    const toolbar = this.shadowRoot.querySelector(".toolbar");
+    const settings = toolbar?.querySelector("[data-settings]");
+    if (toolbar && hass.user?.is_admin && !settings) {
+      const control = iconButton(this._t("integration_settings"), "mdi:cog", () => {
+        if (this._hass?.user?.is_admin) navigate(this, integrationUrl(DOMAIN));
+      });
+      control.dataset.settings = "";
+      toolbar.append(control);
+    } else if (!hass.user?.is_admin) settings?.remove();
     this._update();
+  }
+
+  _upgradeActions() {
+    const current = this.shadowRoot.querySelector(".water");
+    if (!current || current.localName !== "button" || this._watering) return;
+    const control = actionButton(current.textContent, () => {
+      if (this.localName === "plant-care-plus-dashboard") this._markSelected();
+      else this._markWatered();
+    }, current.disabled, "accent");
+    control.className = current.className;
+    control.hidden = current.hidden;
+    control.innerHTML = current.innerHTML;
+    current.replaceWith(control);
+    for (const selector of [".card-view", ".table-view"]) {
+      const old = this.shadowRoot.querySelector(selector);
+      if (!old) continue;
+      const replacement = actionButton(old.textContent, () => this._setView(selector === ".table-view"));
+      replacement.className = old.className;
+      replacement.setAttribute("aria-pressed", old.getAttribute("aria-pressed"));
+      old.replaceWith(replacement);
+    }
   }
 
   getCardSize() {
@@ -77,7 +116,7 @@ class PlantCarePlusCard extends HTMLElement {
         <p class="reason ha-plus-description"></p>
         <div class="stats ha-plus-stats"></div>
         <div class="ha-plus-card-actions">
-          <button class="water primary ha-plus-feedback" type="button"><ha-icon icon="mdi:watering-can"></ha-icon>Mark watered</button>
+          <button class="water primary ha-plus-feedback" type="button"><ha-icon icon="mdi:watering-can"></ha-icon>${this._t("mark_watered")}</button>
           <span class="message ha-plus-message" role="status" aria-live="polite"></span>
         </div>
       </ha-card>`;
@@ -111,10 +150,10 @@ class PlantCarePlusCard extends HTMLElement {
     if (!this._hass || !this._config) return;
     const statusEntity = this._hass.states[this._config.entity];
     if (!statusEntity) {
-      this.shadowRoot.querySelector("h2").textContent = "Plant unavailable";
+      this.shadowRoot.querySelector("h2").textContent = this._t("plant_unavailable");
       this.shadowRoot.querySelector(".status").textContent = this._config.entity;
       this.shadowRoot.querySelector(".reason").textContent =
-        "Select an HA+ Plant Care status sensor.";
+        this._t("select_an_ha_plant_care_status_sensor");
       this.shadowRoot.querySelector(".water").disabled = true;
       return;
     }
@@ -135,7 +174,7 @@ class PlantCarePlusCard extends HTMLElement {
     const tones = { ok: "success", approaching: "warning", check: "warning", needs_attention: "error", overdue: "error" };
     status.dataset.tone = tones[statusEntity.state] || "";
     this.shadowRoot.querySelector(".reason").textContent =
-      statusEntity.attributes.reason || "No care recommendation available.";
+      statusEntity.attributes.reason || this._t("no_care_recommendation_available");
     this.shadowRoot.querySelector(".water").disabled = Boolean(this._watering);
 
     const picture = linkedEntity?.attributes.entity_picture;
@@ -164,16 +203,12 @@ class PlantCarePlusCard extends HTMLElement {
   _formatState(entity, key) {
     const relative = relativeDate(entity, key, this._hass);
     if (relative) return relative;
-    if (!entity) return "Not available";
-    if (typeof this._hass.formatEntityState === "function") {
-      return this._hass.formatEntityState(entity);
-    }
-    const unit = entity.attributes.unit_of_measurement;
-    return unit ? `${entity.state} ${unit}` : this._label(entity.state);
+    if (!entity) return this._t("not_available");
+    return formatEntityState(this._hass, entity);
   }
 
   _label(value) {
-    return String(value || "unknown").replaceAll("_", " ");
+    return this._t(`state_${value || "unknown"}`);
   }
 
   _showMoreInfo(key) {
@@ -182,13 +217,7 @@ class PlantCarePlusCard extends HTMLElement {
 
   _showEntity(entityId) {
     if (!entityId) return;
-    this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        bubbles: true,
-        composed: true,
-        detail: { entityId },
-      }),
-    );
+    showMoreInfo(this, entityId);
   }
 
   async _markWatered() {
@@ -202,19 +231,22 @@ class PlantCarePlusCard extends HTMLElement {
       if (!await confirmWater(this, [name])) return;
       message.textContent = "";
       await this._hass.callService(DOMAIN, "water", { entity_id: this._config.entity });
-      button.classList.add("success");
-      button.setAttribute("aria-label", "Watering recorded");
+      setActionState(button, { success: true });
+      showToast(this, this._t("watering_recorded"));
+      button.setAttribute("aria-label", this._t("watering_recorded"));
       button.innerHTML = '<ha-icon icon="mdi:check"></ha-icon>';
       await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (error) {
-      message.textContent = "Could not record watering. Please try again.";
+      message.textContent = this._t("could_not_record_watering_please_try_again");
       console.error("HA+ Plant Care could not record watering", error);
     } finally {
       this._watering = false;
-      button.classList.remove("success");
+      setActionState(button);
       button.removeAttribute("aria-label");
-      button.innerHTML = '<ha-icon icon="mdi:watering-can"></ha-icon>Mark watered';
+      button.innerHTML = '<ha-icon icon="mdi:watering-can"></ha-icon>';
+      button.append(document.createTextNode(this._t("mark_watered")));
       this._update();
+      if (this._nativeReady) this._upgradeActions();
     }
   }
 
@@ -229,7 +261,7 @@ if (!window.customCards.some((card) => card.type === CARD_TAG)) {
   window.customCards.push({
     type: CARD_TAG,
     name: "HA+ Plant Care",
-    description: "Plant status, measurements, watering schedule, and care action.",
+    description: t("plant_status_measurements_watering_schedule_and_care_action"),
   });
 }
 
@@ -247,7 +279,7 @@ class PlantCarePlusDashboard extends PlantCarePlusCard {
   _renderBase() {
     this._selected = new Set();
     this._items = new Map();
-    this.shadowRoot.innerHTML = `<style>${appStyles}</style><div class="toolbar ha-plus-toolbar" aria-label="Plant view"><button class="card-view" aria-pressed="true">Cards</button><button class="table-view" aria-pressed="false">Table</button><button class="water primary ha-plus-feedback" hidden>Mark selected watered</button><span class="message ha-plus-message" role="status" aria-live="polite"></span></div><div class="cards ha-plus-card-grid"></div><div class="table ha-plus-table" hidden tabindex="0" role="region" aria-label="Plants table"><table><thead><tr><th><input type="checkbox" aria-label="Select all plants"></th><th scope="col">Plant</th><th scope="col">Status</th>${STAT_ROWS.map(([, label]) => `<th scope="col">${label}</th>`).join("")}</tr></thead><tbody></tbody></table></div><p class="empty" hidden>No plants available.</p>`;
+    this.shadowRoot.innerHTML = `<style>${appStyles}</style><div class="toolbar ha-plus-toolbar" aria-label="${this._t("plant_view")}"><button class="card-view" aria-pressed="true">${this._t("cards")}</button><button class="table-view" aria-pressed="false">${this._t("table")}</button><button class="water primary ha-plus-feedback" hidden>${this._t("mark_selected_watered_2")}</button><span class="message ha-plus-message" role="status" aria-live="polite"></span></div><div class="cards ha-plus-card-grid"></div><div class="table ha-plus-table" hidden tabindex="0" role="region" aria-label="${this._t("plants_table")}"><table><thead><tr><th><input type="checkbox" aria-label="${this._t("select_all_plants")}"></th><th scope="col">${this._t("plant")}</th><th scope="col">${this._t("status")}</th>${STAT_ROWS.map(([, label]) => `<th scope="col">${label}</th>`).join("")}</tr></thead><tbody></tbody></table></div><p class="empty" hidden>${this._t("no_plants_available")}</p>`;
     this.shadowRoot.querySelector(".card-view").onclick = () => this._setView(false);
     this.shadowRoot.querySelector(".table-view").onclick = () => this._setView(true);
     this.shadowRoot.querySelector("thead input").onchange = (event) => {
@@ -297,7 +329,7 @@ class PlantCarePlusDashboard extends PlantCarePlusCard {
       item.card.hass = this._hass;
       const name = entity.attributes.plant_name || entity.attributes.friendly_name || id;
       item.row.querySelector(".name").textContent = name;
-      item.row.querySelector("input").setAttribute("aria-label", `Select ${name}`);
+      item.row.querySelector("input").setAttribute("aria-label", this._t("select", { value1: name }));
       item.row.querySelector(".status").textContent = this._label(entity.state);
       for (const [key] of STAT_ROWS) {
         const related = this._hass.states[entity.attributes.related_entities?.[key]];
@@ -320,7 +352,7 @@ class PlantCarePlusDashboard extends PlantCarePlusCard {
     all.disabled = Boolean(this._watering) || !this._items.size;
     const button = this.shadowRoot.querySelector(".water");
     button.disabled = Boolean(this._watering) || !this._selected.size;
-    if (!button.classList.contains("success")) button.textContent = `Mark selected watered (${this._selected.size})`;
+    if (!button.classList.contains("success")) button.textContent = this._t("mark_selected_watered", { value1: this._selected.size });
   }
 
   async _markSelected() {
@@ -343,18 +375,20 @@ class PlantCarePlusDashboard extends PlantCarePlusCard {
         } catch { failed.push(id); }
       }
       if (failed.length) {
-        message.textContent = `${ids.length - failed.length} of ${ids.length} plants recorded. Could not record ${failed.length}; they remain selected for retry.`;
+        message.textContent = this._t("of_plants_recorded_could_not_record_they_remain_selected_for_retry", { value1: ids.length - failed.length, value2: ids.length, value3: failed.length });
       } else {
-        button.classList.add("success");
-        button.setAttribute("aria-label", "Watering recorded for selected plants");
+        setActionState(button, { success: true });
+      showToast(this, this._t("watering_recorded"));
+        button.setAttribute("aria-label", this._t("watering_recorded_for_selected_plants"));
         button.innerHTML = '<ha-icon icon="mdi:check"></ha-icon>';
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     } finally {
       this._watering = false;
-      button.classList.remove("success");
+      setActionState(button);
       button.removeAttribute("aria-label");
       this._updateSelection();
+      if (this._nativeReady) this._upgradeActions();
     }
   }
 }
@@ -363,5 +397,5 @@ if (!customElements.get("plant-care-plus-dashboard")) {
   customElements.define("plant-care-plus-dashboard", PlantCarePlusDashboard);
 }
 if (!window.customCards.some((card) => card.type === "plant-care-plus-dashboard")) {
-  window.customCards.push({ type: "plant-care-plus-dashboard", name: "HA+ Plant Care Dashboard", description: "All plants with card and table views and bulk watering." });
+  window.customCards.push({ type: "plant-care-plus-dashboard", name: "HA+ Plant Care Dashboard", description: t("all_plants_with_card_and_table_views_and_bulk_watering") });
 }
