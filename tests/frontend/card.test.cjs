@@ -120,3 +120,19 @@ test('card and dashboard use only the shared app stylesheet and semantic status 
     }
   }
 });
+
+test('built-in panel reuses the dashboard and exposes one shared app header', () => {
+  const { window, hass } = setup();
+  hass.user = { is_admin: true };
+  const panel = window.document.createElement('plant-care-plus-panel');
+  window.document.body.append(panel);
+  panel.hass = hass;
+  const dashboard = panel.shadowRoot.querySelector('plant-care-plus-dashboard');
+  assert.ok(dashboard);
+  assert.equal(panel.shadowRoot.querySelector('h1').textContent, 'HA+ Plant Care');
+  assert.equal(panel.shadowRoot.querySelector('img').getAttribute('src'), '/plant_care_plus/icon.png');
+  assert.equal(dashboard.shadowRoot.querySelector('[data-settings]'), null);
+  const header = panel.shadowRoot.querySelector('header');
+  panel.hass = { ...hass };
+  assert.equal(panel.shadowRoot.querySelector('header'), header);
+});

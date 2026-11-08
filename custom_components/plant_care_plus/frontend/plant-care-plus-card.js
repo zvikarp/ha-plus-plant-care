@@ -91,6 +91,7 @@
   function iconButton(label, name, handler, disabled = false) {
     const node = el("ha-icon-button");
     node.label = label;
+    node.setAttribute("aria-label", label);
     node.disabled = disabled;
     node.append(icon(name));
     node.addEventListener("click", () => {
@@ -110,7 +111,33 @@
   }
 
   // node_modules/@ha-plus/ui/src/styles.js
-  var themeStyles = `
+  var panelHeaderStyles = `
+  .ha-plus-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: var(--header-height, 56px);
+    min-height: var(--header-height, 56px);
+    padding: 0 12px;
+    box-sizing: border-box;
+    font-family: var(--ha-font-family-body, var(--primary-font-family, Roboto, sans-serif));
+    border-bottom: 1px solid var(--divider-color, #e0e0e0);
+    background: var(--app-header-background-color, var(--primary-background-color, #fafafa));
+    color: var(--app-header-text-color, var(--primary-text-color, #212121));
+  }
+  .ha-plus-header-heading { flex: 1; min-width: 0; }
+  .ha-plus-header h1 { margin: 0; font-size: 20px; font-weight: 400; line-height: 24px; overflow-wrap: anywhere; }
+  .ha-plus-header-icon { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+  .ha-plus-header :is(ha-menu-button, ha-icon-button) { flex-shrink: 0; }
+  @media (max-width: 480px) {
+    .ha-plus-header { gap: 4px; padding-inline: 4px; }
+    .ha-plus-header h1 { font-size: 18px; line-height: 22px; }
+  }
+`;
+  var themeStyles = `${panelHeaderStyles}
   :host { display:block; color:var(--primary-text-color,#212121); font-family:var(--primary-font-family,var(--paper-font-body1_-_font-family,Roboto,sans-serif)); }
   *, *::before, *::after { box-sizing:border-box; }
   [hidden] { display:none !important; }
@@ -134,8 +161,6 @@
   .listbox { position:absolute; z-index:10; inset-inline:0; top:100%; margin-top:4px; max-height:300px; overflow:auto; padding:6px; background:var(--card-background-color,#fff); border:1px solid var(--divider-color,#e0e0e0); border-radius:14px; box-shadow:var(--ha-card-box-shadow,0 4px 16px #0003); }
   .option { display:block; width:100%; text-align:start; border-radius:10px; background:transparent; color:var(--primary-text-color,#212121); white-space:normal; overflow-wrap:anywhere; }
   .option[aria-selected=true] { color:var(--primary-color,#03a9f4); background:var(--secondary-background-color,#f5f5f5); }
-  .ha-plus-header { display:flex; align-items:center; gap:12px; padding:4px 16px; min-height:var(--header-height,56px); background:var(--app-header-background-color,var(--primary-background-color,#fafafa)); color:var(--app-header-text-color,var(--primary-text-color,#212121)); }
-  .ha-plus-header h1 { font-size:20px; font-weight:400; flex:1; margin:0; }
   .ha-plus-content { max-width:1000px; margin:auto; padding:24px; }
   .notice { padding:12px 16px; margin-bottom:16px; background:var(--secondary-background-color,#f5f5f5); border-radius:14px; overflow-wrap:anywhere; }
   .error { color:var(--error-color,#db4437); white-space:pre-wrap; }
@@ -154,7 +179,6 @@
   .ha-plus-dialog-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; }
   ha-alert.notice { padding: 0; background: transparent; }
   ha-form.field { min-width: 0; }
-  .ha-plus-header { min-height: var(--header-height, 56px); border-bottom: 1px solid var(--divider-color, #e0e0e0); }
   ha-dialog { --mdc-dialog-min-width: min(420px, calc(100vw - 32px)); --mdc-dialog-max-width: 560px; }
 `;
   var appStyles = `${themeStyles}${nativeStyles}
@@ -254,13 +278,6 @@
     gap: 12px;
   }
 
-  .ha-plus-group {
-    border-inline-start: 4px solid var(--divider-color, #e0e0e0);
-  }
-
-  .ha-plus-group.active {
-    border-inline-start-color: var(--primary-color, #03a9f4);
-  }
 
   .ha-plus-value {
     margin: 12px 0 4px;
@@ -665,52 +682,6 @@
     });
   }
 
-  // node_modules/@ha-plus/ui/src/loader.js
-  var nativeComponents;
-  async function loadNativeComponents(host) {
-    const required = ["ha-form", "ha-checkbox", "ha-dialog", "ha-icon-button"];
-    if (required.every((name) => customElements.get(name))) return;
-    if (!nativeComponents) {
-      nativeComponents = (async () => {
-        if (!window.loadCardHelpers) {
-          let resolver = host;
-          while (resolver && resolver.localName !== "partial-panel-resolver") {
-            resolver = resolver.parentElement || resolver.getRootNode().host;
-          }
-          const dashboard = Object.values(resolver?.routerOptions?.routes || {}).find((route) => route.tag === "ha-panel-lovelace");
-          if (!dashboard?.load) {
-            throw new Error(localize(host._hass, en_default2, "dashboard_load_failed"));
-          }
-          await dashboard.load();
-        }
-        const helpers = await window.loadCardHelpers();
-        const entities = helpers.createCardElement({ type: "entities", entities: [] });
-        await entities.constructor.getConfigElement();
-        helpers.createCardElement({ type: "todo-list", entity: "todo.ha_plus_ui" });
-        let loadingTimeout;
-        try {
-          await Promise.race([
-            customElements.whenDefined("hui-todo-list-card"),
-            new Promise((_, reject) => {
-              loadingTimeout = setTimeout(() => reject(new Error(localize(host._hass, en_default2, "controls_load_failed"))), 15e3);
-            })
-          ]);
-        } finally {
-          clearTimeout(loadingTimeout);
-        }
-        for (const name of required) {
-          if (!customElements.get(name)) {
-            throw new Error(localize(host._hass, en_default2, "component_load_failed", { component: name }));
-          }
-        }
-      })().catch((error) => {
-        nativeComponents = void 0;
-        throw error;
-      });
-    }
-    await nativeComponents;
-  }
-
   // node_modules/@ha-plus/ui/src/ha-actions.js
   function showMoreInfo(host, entityId) {
     if (!/^[a-z_]+\.[a-z0-9_]+$/.test(entityId || "")) return false;
@@ -757,9 +728,80 @@
     view.dispatchEvent(new view.CustomEvent("location-changed", { detail: { replace: false } }));
   }
 
+  // node_modules/@ha-plus/ui/src/loader.js
+  var nativeComponents;
+  async function loadNativeComponents(host) {
+    const required = ["ha-form", "ha-checkbox", "ha-dialog", "ha-icon-button"];
+    if (required.every((name) => customElements.get(name))) return;
+    if (!nativeComponents) {
+      nativeComponents = (async () => {
+        if (!window.loadCardHelpers) {
+          let resolver = host;
+          while (resolver && resolver.localName !== "partial-panel-resolver") {
+            resolver = resolver.parentElement || resolver.getRootNode().host;
+          }
+          const dashboard = Object.values(resolver?.routerOptions?.routes || {}).find((route) => route.tag === "ha-panel-lovelace");
+          if (!dashboard?.load) {
+            throw new Error(localize(host._hass, en_default2, "dashboard_load_failed"));
+          }
+          await dashboard.load();
+        }
+        const helpers = await window.loadCardHelpers();
+        const entities = helpers.createCardElement({ type: "entities", entities: [] });
+        await entities.constructor.getConfigElement();
+        helpers.createCardElement({ type: "todo-list", entity: "todo.ha_plus_ui" });
+        let loadingTimeout;
+        try {
+          await Promise.race([
+            customElements.whenDefined("hui-todo-list-card"),
+            new Promise((_, reject) => {
+              loadingTimeout = setTimeout(() => reject(new Error(localize(host._hass, en_default2, "controls_load_failed"))), 15e3);
+            })
+          ]);
+        } finally {
+          clearTimeout(loadingTimeout);
+        }
+        for (const name of required) {
+          if (!customElements.get(name)) {
+            throw new Error(localize(host._hass, en_default2, "component_load_failed", { component: name }));
+          }
+        }
+      })().catch((error) => {
+        nativeComponents = void 0;
+        throw error;
+      });
+    }
+    await nativeComponents;
+  }
+
   // node_modules/@ha-plus/ui/src/index.js
-  /*! @ha-plus/ui v0.4.0-rc.4 | MIT | Copyright (c) 2026 HA+ contributors | https://github.com/zvikarp/ha-plus-packages/blob/main/LICENSE */
+  /*! @ha-plus/ui v0.3.2 | MIT | Copyright (c) 2026 HA+ contributors | https://github.com/zvikarp/ha-plus-packages/blob/main/LICENSE */
   var nextId = 0;
+  function panelHeader(title, { hass, narrow, actions = [], subtitle, domain, iconUrl, onRefresh, refreshing = false } = {}) {
+    const header = el("header", void 0, "ha-plus-header");
+    const menu = el("ha-menu-button");
+    menu.hass = hass;
+    menu.narrow = narrow;
+    const heading = el("div", void 0, "ha-plus-header-heading");
+    heading.append(el("h1", title));
+    if (subtitle) heading.append(el("p", subtitle, "ha-plus-muted"));
+    header.append(menu);
+    if (iconUrl) {
+      const logo = el("img", void 0, "ha-plus-header-icon");
+      logo.src = iconUrl;
+      logo.alt = "";
+      header.append(logo);
+    }
+    header.append(heading);
+    if (onRefresh) header.append(iconButton(localize(hass, {}, "common.refresh"), "mdi:refresh", onRefresh, refreshing));
+    header.append(...actions);
+    if (domain && hass?.user?.is_admin) {
+      const settings = iconButton(localize(hass, {}, "settings"), "mdi:cog", () => navigate(header, integrationUrl(domain)));
+      settings.dataset.settings = "";
+      header.append(settings);
+    }
+    return header;
+  }
   function confirmDialog(host, { title, message, confirmLabel = "Confirm", cancelLabel = "Cancel", returnFocus = host.shadowRoot.activeElement }) {
     if (document.defaultView?.customElements.get("ha-dialog")) {
       return nativeConfirmation(host, { title, message, confirmLabel, cancelLabel, returnFocus });
@@ -918,13 +960,13 @@ ${names.join("\n")}` : ""),
       }
       const toolbar = this.shadowRoot.querySelector(".toolbar");
       const settings = toolbar?.querySelector("[data-settings]");
-      if (toolbar && hass.user?.is_admin && !settings) {
+      if (toolbar && hass.user?.is_admin && !this._panel && !settings) {
         const control = iconButton(this._t("integration_settings"), "mdi:cog", () => {
           if (this._hass?.user?.is_admin) navigate(this, integrationUrl(DOMAIN));
         });
         control.dataset.settings = "";
         toolbar.append(control);
-      } else if (!hass.user?.is_admin) settings?.remove();
+      } else if (!hass.user?.is_admin || this._panel) settings?.remove();
       this._update();
     }
     _upgradeActions() {
@@ -1227,4 +1269,56 @@ ${names.join("\n")}` : ""),
   if (!window.customCards.some((card) => card.type === "plant-care-plus-dashboard")) {
     window.customCards.push({ type: "plant-care-plus-dashboard", name: "HA+ Plant Care Dashboard", description: t("all_plants_with_card_and_table_views_and_bulk_watering") });
   }
+  var PlantCarePlusPanel = class extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: "open" });
+    }
+    set hass(value) {
+      this._hass = value;
+      applyPreferences(this, value);
+      this._renderHeader();
+      if (this._dashboard) this._dashboard.hass = value;
+    }
+    set narrow(value) {
+      this._narrow = value;
+      this._renderHeader();
+    }
+    connectedCallback() {
+      if (!this._dashboard) {
+        this.shadowRoot.append(el("style", appStyles));
+        this._dashboard = document.createElement("plant-care-plus-dashboard");
+        this._dashboard.className = "ha-plus-content";
+        this._dashboard._panel = true;
+        this._dashboard.setConfig({});
+        this.shadowRoot.append(this._dashboard);
+      }
+      this._renderHeader();
+      if (this._hass) this._dashboard.hass = this._hass;
+    }
+    _renderHeader() {
+      if (!this._dashboard) return;
+      const existing = this.shadowRoot.querySelector("header");
+      if (existing && existing._admin === Boolean(this._hass?.user?.is_admin)) {
+        const menu = existing.querySelector("ha-menu-button");
+        menu.hass = this._hass;
+        menu.narrow = this._narrow;
+        return;
+      }
+      const header = panelHeader("HA+ Plant Care", {
+        hass: this._hass,
+        narrow: this._narrow,
+        domain: DOMAIN,
+        iconUrl: "/plant_care_plus/icon.png",
+        onRefresh: () => {
+          this._dashboard.hass = this._hass;
+        }
+      });
+      header._admin = Boolean(this._hass?.user?.is_admin);
+      const previous = this.shadowRoot.querySelector("header");
+      if (previous) previous.replaceWith(header);
+      else this.shadowRoot.insertBefore(header, this._dashboard);
+    }
+  };
+  if (!customElements.get("plant-care-plus-panel")) customElements.define("plant-care-plus-panel", PlantCarePlusPanel);
 })();

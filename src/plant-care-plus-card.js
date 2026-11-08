@@ -1,5 +1,5 @@
 import messages from "./translations/en.json";
-import { localize, haContext } from "@ha-plus/ui";
+import { el, panelHeader, localize, haContext } from "@ha-plus/ui";
 const t = (key, values) => localize(haContext(), messages, key, values);
 
 import { appStyles, confirmDialog, actionButton, applyPreferences, formatEntityState, relativeCalendarDate, showMoreInfo, showToast, setActionState, loadNativeComponents, iconButton, integrationUrl, navigate } from "@ha-plus/ui";
@@ -66,13 +66,13 @@ class PlantCarePlusCard extends HTMLElement {
     }
     const toolbar = this.shadowRoot.querySelector(".toolbar");
     const settings = toolbar?.querySelector("[data-settings]");
-    if (toolbar && hass.user?.is_admin && !settings) {
+    if (toolbar && hass.user?.is_admin && !this._panel && !settings) {
       const control = iconButton(this._t("integration_settings"), "mdi:cog", () => {
         if (this._hass?.user?.is_admin) navigate(this, integrationUrl(DOMAIN));
       });
       control.dataset.settings = "";
       toolbar.append(control);
-    } else if (!hass.user?.is_admin) settings?.remove();
+    } else if (!hass.user?.is_admin || this._panel) settings?.remove();
     this._update();
   }
 
@@ -399,3 +399,50 @@ if (!customElements.get("plant-care-plus-dashboard")) {
 if (!window.customCards.some((card) => card.type === "plant-care-plus-dashboard")) {
   window.customCards.push({ type: "plant-care-plus-dashboard", name: "HA+ Plant Care Dashboard", description: t("all_plants_with_card_and_table_views_and_bulk_watering") });
 }
+
+
+class PlantCarePlusPanel extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+  }
+  set hass(value) {
+    this._hass = value;
+    applyPreferences(this, value);
+    this._renderHeader();
+    if (this._dashboard) this._dashboard.hass = value;
+  }
+  set narrow(value) { this._narrow = value; this._renderHeader(); }
+  connectedCallback() {
+    if (!this._dashboard) {
+      this.shadowRoot.append(el("style", appStyles));
+      this._dashboard = document.createElement("plant-care-plus-dashboard");
+      this._dashboard.className = "ha-plus-content";
+      this._dashboard._panel = true;
+      this._dashboard.setConfig({});
+      this.shadowRoot.append(this._dashboard);
+    }
+    this._renderHeader();
+    if (this._hass) this._dashboard.hass = this._hass;
+  }
+  _renderHeader() {
+    if (!this._dashboard) return;
+    const existing = this.shadowRoot.querySelector("header");
+    if (existing && existing._admin === Boolean(this._hass?.user?.is_admin)) {
+      const menu = existing.querySelector("ha-menu-button");
+      menu.hass = this._hass;
+      menu.narrow = this._narrow;
+      return;
+    }
+    const header = panelHeader("HA+ Plant Care", {
+      hass: this._hass, narrow: this._narrow, domain: DOMAIN,
+      iconUrl: "/plant_care_plus/icon.png",
+      onRefresh: () => { this._dashboard.hass = this._hass; },
+    });
+    header._admin = Boolean(this._hass?.user?.is_admin);
+    const previous = this.shadowRoot.querySelector("header");
+    if (previous) previous.replaceWith(header);
+    else this.shadowRoot.insertBefore(header, this._dashboard);
+  }
+}
+if (!customElements.get("plant-care-plus-panel")) customElements.define("plant-care-plus-panel", PlantCarePlusPanel);

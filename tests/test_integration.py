@@ -133,19 +133,30 @@ async def test_sensor_move_preserves_plant_and_history(hass) -> None:
 
 
 async def test_card_registration_uses_supported_frontend_apis() -> None:
-    """The bundled card is served and registered as an ES module."""
+    """Cards and the built-in panel share versioned assets and register once."""
     hass = cast(HomeAssistant, MagicMock())
+    hass.data = {}
     hass.http.async_register_static_paths = AsyncMock()
-
-    with patch(
-        "custom_components.plant_care_plus.frontend.add_extra_js_url"
-    ) as add_extra_js_url:
+    with (
+        patch(
+            "homeassistant.loader.async_get_integration",
+            new=AsyncMock(return_value=MagicMock(version="0.1.8")),
+        ),
+        patch("custom_components.plant_care_plus.frontend.add_extra_js_url") as add,
+        patch(
+            "custom_components.plant_care_plus.frontend.async_register_panel",
+            new=AsyncMock(),
+        ) as panel,
+    ):
         await async_register_card(hass)
-
-    hass.http.async_register_static_paths.assert_awaited_once_with(
-        [StaticPathConfig(CARD_URL, str(CARD_PATH), cache_headers=False)]
-    )
-    add_extra_js_url.assert_called_once_with(hass, CARD_URL)
+        await async_register_card(hass)
+    paths = hass.http.async_register_static_paths.call_args.args[0]
+    assert paths[0] == StaticPathConfig(CARD_URL, str(CARD_PATH), cache_headers=False)
+    assert paths[1].url_path == "/plant_care_plus/icon.png"
+    assert hass.http.async_register_static_paths.await_count == 1
+    add.assert_called_once_with(hass, f"{CARD_URL}?v=0.1.8")
+    assert panel.call_args.kwargs["frontend_url_path"] == "ha-plus-plant-care"
+    assert panel.call_args.kwargs["require_admin"] is False
 
 
 async def test_care_status_exposes_current_card_entities(hass) -> None:
@@ -156,9 +167,7 @@ async def test_care_status_exposes_current_card_entities(hass) -> None:
     await hass.async_block_till_done()
 
     registry = er.async_get(hass)
-    status_id = registry.async_get_entity_id(
-        "sensor", DOMAIN, "card-plant_care_status"
-    )
+    status_id = registry.async_get_entity_id("sensor", DOMAIN, "card-plant_care_status")
     assert status_id is not None
     status = hass.states.get(status_id)
     assert status is not None
