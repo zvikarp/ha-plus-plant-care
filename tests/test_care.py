@@ -1,6 +1,7 @@
 """Tests for care-decision invariants."""
 
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from custom_components.plant_care_plus.care import calculate_care
 from custom_components.plant_care_plus.const import CareStatus
@@ -85,3 +86,20 @@ def test_snooze_suppresses_booleans_but_retains_rich_status() -> None:
     assert result.status == CareStatus.OVERDUE
     assert not result.needs_water
     assert not result.needs_attention
+
+
+def test_schedule_uses_local_calendar_across_daylight_saving() -> None:
+    """Stored UTC watering events must be compared on the plant's local calendar."""
+    timezone = ZoneInfo("America/New_York")
+    result = calculate_care(
+        plant(interval=1),
+        now=datetime(2026, 3, 8, 0, 5, tzinfo=timezone),
+        last_watered=datetime(2026, 3, 8, 4, 30, tzinfo=UTC),
+        moisture=None,
+        moisture_assigned=False,
+        snoozed_until=None,
+    )
+
+    assert result.days_since_watered == 1
+    assert result.status == CareStatus.CHECK
+    assert result.next_watering == datetime(2026, 3, 8, 23, 30, tzinfo=timezone)

@@ -105,7 +105,11 @@ class PlantCareStore:
             details=details or {},
         )
         async with self._lock:
-            await self._async_commit(events=[*self._events, event])
+            snoozes = None
+            if event_type == CareEventType.WATERED and plant_id in self._snoozes:
+                snoozes = dict(self._snoozes)
+                snoozes.pop(plant_id)
+            await self._async_commit(events=[*self._events, event], snoozes=snoozes)
         return event
 
     def assignments_for(self, plant_id: str) -> dict[Measurement, SensorAssignment]:

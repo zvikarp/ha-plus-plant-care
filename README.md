@@ -87,7 +87,7 @@ data:
   source_entity_id: sensor.plant_sensor_3_moisture
 ```
 
-Calling the same assignment action for another plant moves that measurement.
+Target one plant per assignment action. Calling the action for another plant moves that measurement.
 The old plant retains all care history and immediately falls back to its
 schedule.
 

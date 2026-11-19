@@ -1,18 +1,21 @@
 """Core integration promise: plants and their history outlive sensor movement."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import ATTR_ENTITY_ID, CONF_NAME, STATE_UNAVAILABLE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceValidationError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import service as service_helper
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.plant_care_plus import async_setup, async_setup_entry
 from custom_components.plant_care_plus.const import (
     ATTR_MEASUREMENT,
     ATTR_SOURCE_ENTITY_ID,
@@ -29,7 +32,10 @@ from custom_components.plant_care_plus.const import (
     CareEventType,
     Measurement,
 )
-from custom_components.plant_care_plus.coordinator import PlantCareManager
+from custom_components.plant_care_plus.coordinator import (
+    PlantCareManager,
+    PlantCoordinator,
+)
 from custom_components.plant_care_plus.frontend import (
     CARD_PATH,
     CARD_URL,
@@ -269,3 +275,156 @@ async def test_legacy_profile_without_area_still_loads(hass) -> None:
     await hass.async_block_till_done()
     manager: PlantCareManager = hass.data[DOMAIN]
     assert manager.coordinators["legacy-plant"].plant.area_id is None
+
+
+async def test_invalid_moisture_readings_are_unavailable(hass) -> None:
+    """Invalid percentages cannot suppress or trigger watering."""
+    entry = make_entry("fern", "Fern")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    registry = er.async_get(hass)
+    status = registry.async_get_entity_id("sensor", DOMAIN, "fern_care_status")
+    proxy = registry.async_get_entity_id("sensor", DOMAIN, "fern_moisture")
+    assert status is not None
+    assert proxy is not None
+    source = "sensor.fern_moisture_source"
+    hass.states.async_set(source, "45", {"unit_of_measurement": "%"})
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ASSIGN_SENSOR,
+        {
+            ATTR_ENTITY_ID: [status],
+            ATTR_MEASUREMENT: Measurement.MOISTURE,
+            ATTR_SOURCE_ENTITY_ID: source,
+        },
+        blocking=True,
+    )
+    manager: PlantCareManager = hass.data[DOMAIN]
+    for value in ("nan", "inf", "-1", "101"):
+        hass.states.async_set(source, value, {"unit_of_measurement": "%"})
+        await hass.async_block_till_done()
+        assert manager.coordinators["fern"].data.moisture is None
+        assert hass.states.get(proxy).state == STATE_UNAVAILABLE
+        assert not hass.states.get(status).attributes["sensor_assignments"]["moisture"][
+            "available"
+        ]
+    hass.states.async_set(source, "0", {"unit_of_measurement": "%"})
+    await hass.async_block_till_done()
+    assert manager.coordinators["fern"].data.needs_water
+
+
+async def test_future_care_event_is_rejected_before_writing_history(hass) -> None:
+    """Future manual timestamps cannot postpone today's schedule."""
+    entry = make_entry("fern", "Fern")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    status = er.async_get(hass).async_get_entity_id(
+        "sensor", DOMAIN, "fern_care_status"
+    )
+    assert status is not None
+    with pytest.raises(ServiceValidationError, match="future"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_WATER,
+            {
+                ATTR_ENTITY_ID: [status],
+                ATTR_TIMESTAMP: dt_util.utcnow() + timedelta(days=1),
+            },
+            blocking=True,
+        )
+    manager: PlantCareManager = hass.data[DOMAIN]
+    assert manager.store.events_for("fern") == []
+
+
+async def test_assign_rejects_multiple_plants_before_moving_sensor(hass) -> None:
+    """An exclusive assignment must have a single distinct destination."""
+    for name in ("fern", "basil"):
+        entry = make_entry(name, name)
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+    registry = er.async_get(hass)
+    targets = [
+        registry.async_get_entity_id("sensor", DOMAIN, f"{name}_care_status")
+        for name in ("fern", "basil")
+    ]
+    hass.states.async_set("sensor.probe", "25", {"unit_of_measurement": "%"})
+    with pytest.raises(ServiceValidationError, match="one plant"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ASSIGN_SENSOR,
+            {
+                ATTR_ENTITY_ID: targets,
+                ATTR_MEASUREMENT: Measurement.MOISTURE,
+                ATTR_SOURCE_ENTITY_ID: "sensor.probe",
+            },
+            blocking=True,
+        )
+    manager: PlantCareManager = hass.data[DOMAIN]
+    assert not list(manager.store.plant_ids_with_assignments())
+
+
+async def test_failed_setup_releases_active_coordinator(hass) -> None:
+    """An exception during startup must not leave a stale active plant."""
+    assert await async_setup(hass, {})
+    entry = make_entry("fern", "Fern")
+    entry.add_to_hass(hass)
+    with (
+        patch.object(
+            PlantCoordinator, "async_start", side_effect=RuntimeError("failed")
+        ),
+        patch.object(PlantCoordinator, "async_stop", autospec=True) as stop,
+        pytest.raises(RuntimeError, match="failed"),
+    ):
+        await async_setup_entry(hass, entry)
+    manager: PlantCareManager = hass.data[DOMAIN]
+    assert "fern" not in manager.coordinators
+    stop.assert_awaited_once()
+
+
+async def test_ambient_source_uses_healthy_backup(hass) -> None:
+    """An unavailable candidate must not mask a usable sensor in the same area."""
+    area = ar.async_get(hass).async_create("Greenhouse")
+    registry = er.async_get(hass)
+    for name, value in (
+        ("first_temperature", STATE_UNAVAILABLE),
+        ("second_temperature", "24"),
+    ):
+        source = registry.async_get_or_create(
+            "sensor",
+            "test",
+            name,
+            suggested_object_id=name,
+            original_device_class=SensorDeviceClass.TEMPERATURE,
+        )
+        registry.async_update_entity(source.entity_id, area_id=area.id)
+        hass.states.async_set(source.entity_id, value, {"unit_of_measurement": "°C"})
+    entry = make_entry("fern", "Fern", area.id)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    proxy = registry.async_get_entity_id("sensor", DOMAIN, "fern_temperature")
+    assert proxy is not None
+    assert hass.states.get(proxy).state == "24.0"
+
+
+async def test_periodic_refresh_subscribes_to_new_ambient_source(hass) -> None:
+    """A source discovered after startup must get immediate state tracking."""
+    area = ar.async_get(hass).async_create("Greenhouse")
+    entry = make_entry("fern", "Fern", area.id)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    registry = er.async_get(hass)
+    source = registry.async_get_or_create(
+        "sensor",
+        "test",
+        "late_temperature",
+        original_device_class=SensorDeviceClass.TEMPERATURE,
+    )
+    registry.async_update_entity(source.entity_id, area_id=area.id)
+    hass.states.async_set(source.entity_id, "24", {"unit_of_measurement": "°C"})
+    manager: PlantCareManager = hass.data[DOMAIN]
+    await manager.coordinators["fern"].async_refresh()
+    hass.states.async_set(source.entity_id, "26", {"unit_of_measurement": "°C"})
+    await hass.async_block_till_done()
+    proxy = registry.async_get_entity_id("sensor", DOMAIN, "fern_temperature")
+    assert proxy is not None
+    assert hass.states.get(proxy).state == "26.0"
