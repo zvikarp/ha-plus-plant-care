@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from asyncio import CancelledError
 from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
@@ -33,8 +34,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     plant = PlantConfig.from_entry(entry)
     coordinator = PlantCoordinator(hass, entry, plant, manager.store)
     manager.add(coordinator)
-    await coordinator.async_start()
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    try:
+        await coordinator.async_start()
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except (Exception, CancelledError):
+        await manager.async_remove(plant.plant_id)
+        raise
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
 

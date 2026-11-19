@@ -21,8 +21,9 @@ def calculate_care(
     next_watering = None
     days_since = None
     if last_watered is not None:
-        next_watering = last_watered + timedelta(days=plant.watering_interval_days)
-        days_since = max(0, (now.date() - last_watered.date()).days)
+        local_watering = last_watered.astimezone(now.tzinfo)
+        next_watering = local_watering + timedelta(days=plant.watering_interval_days)
+        days_since = max(0, (now.date() - local_watering.date()).days)
 
     moisture_available = moisture is not None
     if moisture is not None:

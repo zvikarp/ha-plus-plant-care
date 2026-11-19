@@ -104,6 +104,10 @@ def async_register_services(hass: HomeAssistant, manager: PlantCareManager) -> N
                     msg = f"Unknown Home Assistant time zone: {hass.config.time_zone}"
                     raise ServiceValidationError(msg)
                 timestamp = timestamp.replace(tzinfo=timezone)
+            if timestamp is not None and timestamp > dt_util.utcnow():
+                raise ServiceValidationError(
+                    "Care events cannot be recorded in the future"
+                )
             for coordinator in _coordinators_for_call(hass, manager, call):
                 await coordinator.async_record_care(event_type, timestamp)
 
@@ -119,13 +123,16 @@ def async_register_services(hass: HomeAssistant, manager: PlantCareManager) -> N
             msg = "An HA+ Plant Care proxy cannot be used as a source sensor"
             raise ServiceValidationError(msg)
         coordinators = _coordinators_for_call(hass, manager, call)
-        for coordinator in coordinators:
-            affected = await manager.store.async_assign(
-                coordinator.plant.plant_id,
-                call.data[ATTR_MEASUREMENT],
-                source_entity_id,
+        if len(coordinators) != 1:
+            raise ServiceValidationError(
+                "Assign the source sensor to one plant at a time"
             )
-            await manager.async_refresh(affected)
+        affected = await manager.store.async_assign(
+            coordinators[0].plant.plant_id,
+            call.data[ATTR_MEASUREMENT],
+            source_entity_id,
+        )
+        await manager.async_refresh(affected)
 
     async def handle_unassign(call: ServiceCall) -> None:
         for coordinator in _coordinators_for_call(hass, manager, call):

@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from math import isfinite
 
 from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.const import ATTR_DEVICE_CLASS, CONF_NAME
-from homeassistant.core import HomeAssistant
+from homeassistant.const import (
+    ATTR_DEVICE_CLASS,
+    ATTR_UNIT_OF_MEASUREMENT,
+    CONF_NAME,
+    PERCENTAGE,
+)
+from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
@@ -24,6 +30,24 @@ _LINKED_PLANT_READINGS = {
     Measurement.CONDUCTIVITY: "conductivity",
     Measurement.ILLUMINANCE: "brightness",
 }
+
+
+def measurement_value(state: State | None, measurement: Measurement) -> float | None:
+    """Return a finite reading that is usable for the requested measurement."""
+    if state is None:
+        return None
+    try:
+        value = float(state.state)
+    except ValueError:
+        return None
+    if not isfinite(value):
+        return None
+    if measurement == Measurement.MOISTURE and (
+        state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) != PERCENTAGE
+        or not 0 <= value <= 100
+    ):
+        return None
+    return value
 
 
 def entity_area_id(hass: HomeAssistant, entity_id: str) -> str | None:
@@ -107,6 +131,7 @@ def area_source(
         ),
         key=lambda entry: entry.entity_id,
     )
+    fallback: str | None = None
     for entry in candidates:
         state = hass.states.get(entry.entity_id)
         device_class = (
@@ -118,5 +143,8 @@ def area_source(
             isinstance(device_class, str)
             and _AMBIENT_DEVICE_CLASSES.get(device_class) == measurement
         ):
-            return entry.entity_id
-    return None
+            if measurement_value(state, measurement) is not None:
+                return entry.entity_id
+            if fallback is None:
+                fallback = entry.entity_id
+    return fallback

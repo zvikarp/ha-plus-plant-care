@@ -11,8 +11,6 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     ATTR_UNIT_OF_MEASUREMENT,
-    STATE_UNAVAILABLE,
-    STATE_UNKNOWN,
     UnitOfTime,
 )
 from homeassistant.helpers import entity_registry as er
@@ -21,6 +19,7 @@ from .const import DOMAIN, Measurement
 from .coordinator import PlantCareManager, PlantCoordinator
 from .entity import PlantCareEntity
 from .models import PlantConfig
+from .sources import measurement_value
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -69,14 +68,6 @@ class CareStatusSensor(PlantCareEntity, SensorEntity):
         """Return current care state."""
         return self.coordinator.data.status
 
-    def _source_available(self, entity_id: str) -> bool:
-        """Return whether Home Assistant currently has a usable source state."""
-        state = self.hass.states.get(entity_id)
-        return state is not None and state.state not in {
-            STATE_UNKNOWN,
-            STATE_UNAVAILABLE,
-        }
-
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Expose concise decision evidence and assignment health."""
@@ -113,7 +104,10 @@ class CareStatusSensor(PlantCareEntity, SensorEntity):
             "sensor_assignments": {
                 measurement: {
                     "entity_id": source,
-                    "available": self._source_available(source),
+                    "available": measurement_value(
+                        self.hass.states.get(source), measurement
+                    )
+                    is not None,
                 }
                 for measurement, source in sources.items()
             },
@@ -218,18 +212,7 @@ class MeasurementSensor(PlantCareEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Remain unavailable rather than inventing missing measurements."""
-        state = self._source_state
-        if (
-            not super().available
-            or state is None
-            or state.state in {STATE_UNKNOWN, STATE_UNAVAILABLE}
-        ):
-            return False
-        try:
-            float(state.state)
-        except (TypeError, ValueError):
-            return False
-        return True
+        return super().available and self.native_value is not None
 
     @property
     def native_unit_of_measurement(self) -> str | None:
@@ -240,13 +223,7 @@ class MeasurementSensor(PlantCareEntity, SensorEntity):
     @property
     def native_value(self) -> float | None:
         """Return the source's numeric reading."""
-        state = self._source_state
-        if state is None or state.state in {STATE_UNKNOWN, STATE_UNAVAILABLE}:
-            return None
-        try:
-            return float(state.state)
-        except (TypeError, ValueError):
-            return None
+        return measurement_value(self._source_state, self.measurement)
 
     @property
     def extra_state_attributes(self) -> dict[str, str | None]:

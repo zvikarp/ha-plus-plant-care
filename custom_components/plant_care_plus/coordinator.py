@@ -3,15 +3,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
-from homeassistant.const import (
-    ATTR_UNIT_OF_MEASUREMENT,
-    PERCENTAGE,
-    STATE_UNAVAILABLE,
-    STATE_UNKNOWN,
-)
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.event import (
     EventStateChangedData,
@@ -23,7 +18,7 @@ from homeassistant.util import dt as dt_util
 from .care import calculate_care
 from .const import DOMAIN, UPDATE_INTERVAL, CareEventType, Measurement
 from .models import CareDecision, PlantConfig
-from .sources import area_source, linked_plant_source
+from .sources import area_source, linked_plant_source, measurement_value
 from .storage import PlantCareStore
 
 if TYPE_CHECKING:
@@ -46,24 +41,23 @@ class PlantCoordinator(DataUpdateCoordinator[CareDecision]):
         super().__init__(
             hass,
             logger=_LOGGER,
+            config_entry=entry,
             name=f"{DOMAIN}_{plant.plant_id}",
             update_interval=UPDATE_INTERVAL,
         )
         self.entry = entry
         self.plant = plant
         self.store = store
-        self._remove_state_listener: Any = None
+        self._remove_state_listener: Callable[[], None] | None = None
+        self._source_entity_ids: set[str] = set()
 
     async def async_start(self) -> None:
         """Begin tracking assigned entities and perform the first calculation."""
-        self._subscribe_to_assignments()
         await self.async_config_entry_first_refresh()
 
     @callback
     def _subscribe_to_assignments(self) -> None:
         """Track assignment state changes without owning source sensors."""
-        if self._remove_state_listener is not None:
-            self._remove_state_listener()
         entity_ids = {
             entity_id
             for measurement in Measurement
@@ -71,6 +65,11 @@ class PlantCoordinator(DataUpdateCoordinator[CareDecision]):
         }
         if self.plant.linked_plant_entity is not None:
             entity_ids.add(self.plant.linked_plant_entity)
+        if entity_ids == self._source_entity_ids:
+            return
+        if self._remove_state_listener is not None:
+            self._remove_state_listener()
+        self._source_entity_ids = entity_ids
         self._remove_state_listener = (
             async_track_state_change_event(
                 self.hass, entity_ids, self._async_source_state_changed
@@ -80,15 +79,10 @@ class PlantCoordinator(DataUpdateCoordinator[CareDecision]):
         )
 
     @callback
-    def _async_source_state_changed(self, event: Event[EventStateChangedData]) -> None:
+    def _async_source_state_changed(self, _event: Event[EventStateChangedData]) -> None:
         """Recalculate immediately when a source sensor changes."""
-        if event.data["entity_id"] == self.plant.linked_plant_entity:
-            self._subscribe_to_assignments()
-        self.async_set_updated_data(self._calculate())
-
-    def assignments_changed(self) -> None:
-        """Resubscribe after a sensor is assigned, removed, or moved."""
         self._subscribe_to_assignments()
+        self.async_set_updated_data(self._calculate())
 
     def source_entity_id(self, measurement: Measurement) -> str | None:
         """Resolve manual, linked-plant, then area-based measurement sources."""
@@ -102,32 +96,24 @@ class PlantCoordinator(DataUpdateCoordinator[CareDecision]):
         return area_source(self.hass, self.plant.area_id, measurement)
 
     async def _async_update_data(self) -> CareDecision:
-        """Calculate current care state."""
+        """Rebind changed sources and calculate current care state."""
+        self._subscribe_to_assignments()
         return self._calculate()
 
     def _calculate(self) -> CareDecision:
         moisture_source = self.source_entity_id(Measurement.MOISTURE)
-        moisture = None
-        if moisture_source is not None:
-            state = self.hass.states.get(moisture_source)
-            if (
-                state is not None
-                and state.state
-                not in {
-                    STATE_UNKNOWN,
-                    STATE_UNAVAILABLE,
-                }
-                and state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) == PERCENTAGE
-            ):
-                try:
-                    moisture = float(state.state)
-                except (TypeError, ValueError):
-                    moisture = None
-
+        moisture = (
+            measurement_value(
+                self.hass.states.get(moisture_source), Measurement.MOISTURE
+            )
+            if moisture_source is not None
+            else None
+        )
+        timezone = dt_util.get_time_zone(self.hass.config.time_zone) or UTC
         last_watered = self.store.last_event(self.plant.plant_id, CareEventType.WATERED)
         return calculate_care(
             self.plant,
-            now=dt_util.utcnow(),
+            now=dt_util.now(timezone),
             last_watered=last_watered.timestamp if last_watered else None,
             moisture=moisture,
             moisture_assigned=moisture_source is not None,
@@ -135,14 +121,12 @@ class PlantCoordinator(DataUpdateCoordinator[CareDecision]):
         )
 
     async def async_record_care(
-        self, event_type: CareEventType, timestamp: Any = None
+        self, event_type: CareEventType, timestamp: datetime | None = None
     ) -> None:
         """Record one care action and publish its new state."""
         await self.store.async_record_event(
             self.plant.plant_id, event_type, timestamp=timestamp
         )
-        if event_type == CareEventType.WATERED:
-            await self.store.async_set_snooze(self.plant.plant_id, None)
         await self.async_request_refresh()
 
     async def async_snooze(self, hours: int) -> None:
@@ -153,10 +137,12 @@ class PlantCoordinator(DataUpdateCoordinator[CareDecision]):
         await self.async_request_refresh()
 
     async def async_stop(self) -> None:
-        """Stop source-state tracking."""
+        """Stop source-state tracking and pending coordinator refreshes."""
         if self._remove_state_listener is not None:
             self._remove_state_listener()
             self._remove_state_listener = None
+        self._source_entity_ids.clear()
+        await self.async_shutdown()
 
 
 class PlantCareManager:
@@ -186,5 +172,4 @@ class PlantCareManager:
         """Refresh plants affected by an assignment transaction."""
         for plant_id in plant_ids:
             if coordinator := self.coordinators.get(plant_id):
-                coordinator.assignments_changed()
-                await coordinator.async_request_refresh()
+                await coordinator.async_refresh()
